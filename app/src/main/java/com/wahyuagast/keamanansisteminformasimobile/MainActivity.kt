@@ -1,3 +1,4 @@
+// kotlin
 package com.wahyuagast.keamanansisteminformasimobile
 
 import android.net.Uri
@@ -20,7 +21,7 @@ import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.RegisterScre
 import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.UserHomeScreen
 import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.HomeViewModel
 import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.models.ProfileDto
-import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.pkl.AdminDashboard
+import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.pkl.AdminScreen
 import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.pkl.PklViewModel
 import java.io.File
 import java.io.FileOutputStream
@@ -60,10 +61,8 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
             val context = LocalContext.current
 
-            // Holds the profile returned after login; used to pass to Home screens
             var currentProfile by remember { mutableStateOf<ProfileDto?>(null) }
 
-            // NOTE: we instantiate pklApi/repo inside composables (so tokenManager and context accessible)
             NavHost(navController = navController, startDestination = "login") {
                 composable("login") {
                     LoginScreen(
@@ -91,7 +90,6 @@ class MainActivity : ComponentActivity() {
                 }
 
                 composable("user_home") {
-                    // create PklRepository & ViewModel per currentProfile
                     val pklApi = RetrofitProvider.providePklApi(tokenManager, applicationContext)
                     val pklRepo = PklRepository(pklApi, tokenManager, applicationContext)
                     val currentUserId = currentProfile?.id ?: ""
@@ -107,10 +105,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         },
-                        // additional navigation into PKL flow:
-                        onOpenStudentDashboard = {
-                            navController.navigate("student_dashboard")
-                        }
+                        onOpenStudentDashboard = { navController.navigate("student_dashboard") }
                     )
                 }
 
@@ -125,9 +120,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         },
-                        onOpenAdminDashboard = {
-                            navController.navigate("admin_dashboard")
-                        }
+                        onOpenAdminDashboard = { navController.navigate("admin_dashboard") }
                     )
                 }
 
@@ -138,10 +131,8 @@ class MainActivity : ComponentActivity() {
                     val currentUserId = currentProfile?.id ?: ""
                     val pklVm = remember { PklViewModel(pklRepo, currentUserId) }
 
-                    // collect submissions state
                     val submissions by pklVm.submissions.collectAsState()
 
-                    // import StudentDashboard composable from your UI package
                     com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.pkl.StudentDashboard(
                         submissions = submissions,
                         onCreateSubmission = { navController.navigate("submission_form") },
@@ -195,7 +186,6 @@ class MainActivity : ComponentActivity() {
 
                     com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.pkl.ExecutionFormScreen(
                         onSubmitExecution = { start, end, activities, file ->
-                            // treat as submission type "form_3a" or similar
                             pklVm.submitDocument("form_3a", "Pelaksanaan PKL", activities, file) { ok ->
                                 if (ok) navController.popBackStack()
                             }
@@ -213,7 +203,6 @@ class MainActivity : ComponentActivity() {
 
                     com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.pkl.MonevScreen(
                         onSubmitMonev = { notes, checklist, file ->
-                            // store as submission type "monev"
                             pklVm.submitDocument("monev", "Monev", notes, file) { ok ->
                                 if (ok) navController.popBackStack()
                             }
@@ -231,7 +220,6 @@ class MainActivity : ComponentActivity() {
 
                     com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.pkl.FinalReportScreen(
                         onUploadFinal = { logbook, surat, draft ->
-                            // create multiple submissions for each file (logbook/surat/draft)
                             if (logbook != null) pklVm.submitDocument("logbook", "Logbook", "Upload logbook", logbook) {}
                             if (surat != null) pklVm.submitDocument("surat_selesai", "Surat Selesai", "Surat selesai", surat) {}
                             if (draft != null) pklVm.submitDocument("draft_jurnal", "Draft Jurnal", "Draft jurnal", draft) {}
@@ -260,25 +248,14 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Admin PKL dashboard (list + review)
+                // Admin PKL dashboard (list + review) via AdminScreen (handles loading/error)
                 composable("admin_dashboard") {
                     val pklApi = RetrofitProvider.providePklApi(tokenManager, applicationContext)
                     val pklRepo = PklRepository(pklApi, tokenManager, applicationContext)
                     val currentUserId = currentProfile?.id ?: ""
                     val pklVm = remember { PklViewModel(pklRepo, currentUserId) }
 
-                    val submissions by pklVm.submissions.collectAsState()
-
-                    AdminDashboard(
-                        submissions = submissions,
-                        onRefresh = { pklVm.loadSubmissions() },
-                        onAction = { id, action, comment ->
-                            pklVm.adminAction(id, action, comment) { success ->
-                                // optionally show toast/snackbar - keep simple: refresh
-                                if (success) pklVm.loadSubmissions()
-                            }
-                        }
-                    )
+                    AdminScreen(vm = pklVm)
                 }
             }
         }

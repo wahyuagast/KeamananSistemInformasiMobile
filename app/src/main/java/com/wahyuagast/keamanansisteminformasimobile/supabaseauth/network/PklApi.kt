@@ -30,6 +30,27 @@ interface PklApi {
 
     @POST("rpc/submission_action")
     suspend fun submissionAction(@Body body: SubmissionActionRequest): Response<Unit>
+
+    // Admin: fetch all registrations (RLS must allow your admin user)
+    @GET("pkl_registrations")
+    suspend fun getRegistrationsAdmin(
+        @Query("order") order: String = "created_at.desc"
+    ): List<RegistrationDto>
+
+    @Headers("Prefer: return=minimal")
+    @PATCH("pkl_registrations")
+    suspend fun updateRegistration(
+        @Body body: RegistrationUpdateRequest,
+        @Query("id") idFilter: String // pass "eq.<uuid>"
+    ): Response<Unit>
+
+    // Admin: update registration status/comment (PATCH pkl_registrations?id=eq.<uuid>)
+    @Headers("Prefer: return=minimal")
+    @PATCH("pkl_registrations")
+    suspend fun updateRegistration(
+        @Body body: Map<String, @JvmSuppressWildcards Any?>,
+        @Query("id") idFilter: String // pass "eq.<uuid>"
+    ): Response<Unit>
 }
 
 @Serializable

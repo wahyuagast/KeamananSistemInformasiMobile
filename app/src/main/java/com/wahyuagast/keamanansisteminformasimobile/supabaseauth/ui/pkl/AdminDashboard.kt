@@ -1,5 +1,6 @@
 package com.wahyuagast.keamanansisteminformasimobile.supabaseauth.ui.pkl
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.models.SubmissionDto
 
@@ -18,29 +20,71 @@ fun AdminDashboard(
     submissions: List<SubmissionDto>,
     onRefresh: () -> Unit,
     onAction: (submissionId: String, action: String, comment: String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false,
+    error: String? = null,
+    onErrorShown: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     var selected by remember { mutableStateOf<SubmissionDto?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Show toast on errors as well
+    LaunchedEffect(error) {
+        if (error != null) {
+            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+            snackbarHostState.showSnackbar(error)
+            onErrorShown()
+        }
+    }
+
+    // Toast when loading starts/ends
+    var prevLoading by remember { mutableStateOf(false) }
+    LaunchedEffect(isLoading) {
+        if (isLoading && !prevLoading) {
+            Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
+        } else if (!isLoading && prevLoading) {
+            Toast.makeText(context, "Done.", Toast.LENGTH_SHORT).show()
+        }
+        prevLoading = isLoading
+    }
 
     Scaffold(
         topBar = { CenterAlignedTopAppBar(title = { Text("Admin - Pengajuan PKL") }) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(onClick = onRefresh) {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    Toast.makeText(context, "Refreshing...", Toast.LENGTH_SHORT).show()
+                    onRefresh()
+                }
+            ) {
                 Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Refresh")
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (submissions.isEmpty()) {
+            if (isLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                )
+            }
+
+            if (submissions.isEmpty() && !isLoading) {
                 EmptyState(
                     message = "No submissions yet",
-                    onRefresh = onRefresh,
+                    onRefresh = {
+                        Toast.makeText(context, "Refreshing...", Toast.LENGTH_SHORT).show()
+                        onRefresh()
+                    },
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else {
@@ -79,6 +123,7 @@ fun AdminDashboard(
                 submission = sub,
                 onDismiss = { selected = null },
                 onAction = { action, comment ->
+                    Toast.makeText(context, "Submitting review: $action", Toast.LENGTH_SHORT).show()
                     onAction(sub.id, action, comment)
                     selected = null
                 }
