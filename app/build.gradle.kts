@@ -73,4 +73,6 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.7")
     // Optional - Coil for avatar images
     implementation("io.coil-kt:coil-compose:2.4.0")
+
+    implementation("androidx.compose.material3:material3:1.3.0")
 }

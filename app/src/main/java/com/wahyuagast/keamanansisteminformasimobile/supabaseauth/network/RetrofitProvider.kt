@@ -2,7 +2,7 @@ package com.wahyuagast.keamanansisteminformasimobile.supabaseauth.network
 
 import android.content.Context
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
-import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.Constants
+import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.network.Constants
 import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.data.TokenManager
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -77,5 +77,26 @@ object RetrofitProvider {
             .client(client)
             .build()
         return retrofit.create(PostgrestApi::class.java)
+    }
+
+    fun providePklApi(tokenManager: TokenManager, context: Context): PklApi {
+        val json = Json { ignoreUnknownKeys = true }
+        val contentType = "application/json".toMediaType()
+
+        val client = OkHttpClient.Builder()
+            // Reuse your AuthInterceptor that injects supabase apikey + bearer token
+            .addInterceptor(AuthInterceptor(tokenManager))
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        // Base URL must end with "/"
+        val retrofit = Retrofit.Builder()
+            .baseUrl(Constants.POSTGREST_BASE) // e.g. https://<PROJECT>.supabase.co/rest/v1/
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .client(client)
+            .build()
+
+        return retrofit.create(PklApi::class.java)
     }
 }
