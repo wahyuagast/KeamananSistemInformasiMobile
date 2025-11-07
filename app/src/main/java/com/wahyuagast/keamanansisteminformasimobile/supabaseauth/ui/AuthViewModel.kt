@@ -27,11 +27,17 @@ class AuthViewModel(private val repo: AuthRepository): ViewModel() {
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true, error = null)
             try {
-                val resp = repo.signUp(uiState.email, uiState.password)
-                val token = resp.access_token
-                token?.let { repo.saveToken(it) }
-                uiState = uiState.copy(isLoading = false)
-                onSuccess()
+                val response = repo.signUp(uiState.email, uiState.password)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val token = body?.access_token
+                    token?.let { repo.saveToken(it) }
+                    uiState = uiState.copy(isLoading = false)
+                    onSuccess()
+                } else {
+                    val msg = response.errorBody()?.string() ?: "Signup failed (status ${response.code()})"
+                    uiState = uiState.copy(isLoading = false, error = msg)
+                }
             } catch (e: Exception) {
                 uiState = uiState.copy(isLoading = false, error = e.localizedMessage ?: "Signup failed")
             }
@@ -42,15 +48,22 @@ class AuthViewModel(private val repo: AuthRepository): ViewModel() {
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true, error = null)
             try {
-                val resp = repo.signIn(uiState.email, uiState.password)
-                val token = resp.access_token
+                val response = repo.signIn(uiState.email, uiState.password)
+                if (!response.isSuccessful) {
+                    val msg = response.errorBody()?.string() ?: "Login failed (status ${response.code()})"
+                    uiState = uiState.copy(isLoading = false, error = msg)
+                    onSuccess(null)
+                    return@launch
+                }
+                val respBody = response.body()
+                val token = respBody?.access_token
                 if (token == null) {
-                    uiState = uiState.copy(isLoading = false, error = "No access token (confirm email?)")
+                    uiState = uiState.copy(isLoading = false, error = "No access token (maybe confirm email?)")
                     onSuccess(null)
                     return@launch
                 }
                 repo.saveToken(token)
-                // ambil profile via RPC
+                // now call RPC get_my_profile
                 val profiles = repo.getMyProfile()
                 val profile = profiles.firstOrNull()
                 uiState = uiState.copy(isLoading = false)
@@ -62,10 +75,23 @@ class AuthViewModel(private val repo: AuthRepository): ViewModel() {
         }
     }
 
-    fun logout(onDone: ()->Unit) {
+    fun logout(onDone: () -> Unit) {
         viewModelScope.launch {
-            repo.clearToken()
-            onDone()
+            uiState = uiState.copy(isLoading = true)
+            try {
+                // try to logout on server; ignore failure but log it
+                try {
+                    repo.logoutFromServer()
+                } catch (_: Exception) { /* ignore network failures */ }
+
+                repo.clearToken()
+            } catch (e: Exception) {
+                // still clear local token on error
+                try { repo.clearToken() } catch (_: Exception) {}
+            } finally {
+                uiState = uiState.copy(isLoading = false)
+                onDone()
+            }
         }
     }
 }

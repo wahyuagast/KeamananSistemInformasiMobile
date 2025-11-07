@@ -6,12 +6,14 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
+import retrofit2.http.QueryMap
 
 interface PostgrestApi {
     // RPC get_my_profile
-    @POST("rpc/get_my_profile")
-    suspend fun getMyProfile(@Body body: Map<String, Any> = emptyMap()): List<ProfileDto>
-
+    @GET("rpc/get_my_profile")
+    suspend fun getMyProfile(
+        @QueryMap filters: Map<String, String> = emptyMap()
+    ): List<ProfileDto>
     // get all profiles (admin will use this)
     @GET("profiles")
     suspend fun getAllProfiles(): List<ProfileDto>

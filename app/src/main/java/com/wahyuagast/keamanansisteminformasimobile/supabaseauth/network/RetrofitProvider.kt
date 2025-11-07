@@ -4,12 +4,14 @@ import android.content.Context
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.Constants
 import com.wahyuagast.keamanansisteminformasimobile.supabaseauth.data.TokenManager
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import okhttp3.MediaType.Companion.toMediaType
 import java.util.concurrent.TimeUnit
+import okhttp3.logging.HttpLoggingInterceptor
 
 class AuthInterceptor(private val tokenManager: TokenManager): Interceptor {
     override fun intercept(chain: Interceptor.Chain): okhttp3.Response {
@@ -18,13 +20,16 @@ class AuthInterceptor(private val tokenManager: TokenManager): Interceptor {
             kotlinx.coroutines.runBlocking { tokenManager.getToken() }
         }.getOrNull()
 
-        val newReq = req.newBuilder()
+        val newReqBuilder = req.newBuilder()
             .addHeader("apikey", Constants.SUPABASE_ANON_KEY)
             .addHeader("Content-Type", "application/json")
-            .apply {
-                if (!token.isNullOrEmpty()) addHeader("Authorization", "Bearer $token")
-            }
-            .build()
+            .addHeader("Accept", "application/json")
+
+        if (!token.isNullOrEmpty()) {
+            newReqBuilder.addHeader("Authorization", "Bearer $token")
+        }
+
+        val newReq = newReqBuilder.build()
         return chain.proceed(newReq)
     }
 }
@@ -32,15 +37,22 @@ class AuthInterceptor(private val tokenManager: TokenManager): Interceptor {
 object RetrofitProvider {
     private val json = Json { ignoreUnknownKeys = true }
 
+    @OptIn(ExperimentalSerializationApi::class)
     fun provideAuthApi(): AuthApi {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
         val client = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .addHeader("apikey", Constants.SUPABASE_ANON_KEY)
                     .addHeader("Content-Type", "application/json")
+                    .addHeader("Accept", "application/json")
                     .build()
                 chain.proceed(request)
             }
+            .addInterceptor(logging) // remove or set to NONE in production
             .callTimeout(30, TimeUnit.SECONDS)
             .build()
 
@@ -52,6 +64,7 @@ object RetrofitProvider {
         return retrofit.create(AuthApi::class.java)
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     fun providePostgrestApi(context: Context, tokenManager: TokenManager): PostgrestApi {
         val client = OkHttpClient.Builder()
             .addInterceptor(AuthInterceptor(tokenManager))

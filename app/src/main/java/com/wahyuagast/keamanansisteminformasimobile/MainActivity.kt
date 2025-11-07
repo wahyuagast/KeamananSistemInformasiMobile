@@ -44,7 +44,14 @@ class MainActivity : ComponentActivity() {
                         onLoginSuccess = { profile ->
                             // Save profile to state so Home screens can read it
                             currentProfile = profile
-                            if (profile?.role == "admin") {
+
+                            // safety: if profile is null (login failed/needs confirm) keep at login
+                            if (profile == null) {
+                                // optional: show error handled by ViewModel; remain on login
+                                return@LoginScreen
+                            }
+
+                            if (profile.role == "admin") {
                                 navController.navigate("admin_home") {
                                     // clear backstack so user doesn't go back to login with back button
                                     popUpTo("login") { inclusive = true }
@@ -67,10 +74,12 @@ class MainActivity : ComponentActivity() {
                     UserHomeScreen(
                         profile = currentProfile,
                         onLogout = {
+                            // call logout which clears server/local token, then navigate to login
                             authVm.logout {
                                 currentProfile = null
                                 navController.navigate("login") {
-                                    popUpTo(0)
+                                    // clear entire backstack and land on login
+                                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
                                 }
                             }
                         }
@@ -84,7 +93,7 @@ class MainActivity : ComponentActivity() {
                             authVm.logout {
                                 currentProfile = null
                                 navController.navigate("login") {
-                                    popUpTo(0)
+                                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
                                 }
                             }
                         }
