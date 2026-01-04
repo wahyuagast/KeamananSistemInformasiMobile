@@ -16,14 +16,47 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository
+import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentDto
+import java.time.OffsetDateTime
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun AdminDashboardScreen(
     onNavigate: (String) -> Unit,
-    onLogout: () -> Unit // Kept for compatibility if used elsewhere, but header now goes to Profile
+    _onLogout: () -> Unit // Kept for compatibility if used elsewhere, but header now goes to Profile
 ) {
+    val repo = remember { DocumentRepository() }
+
+    var documents by remember { mutableStateOf<List<DocumentDto>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var awardeeCount by remember { mutableStateOf<Int?>(null) }
+
+    LaunchedEffect(Unit) {
+        isLoading = true
+        try {
+            documents = repo.getAdminDocuments()
+            val (count, list) = repo.getAwardees()
+            awardeeCount = count
+            error = null
+        } catch (_: Exception) {
+            error = "Failed to load"
+        } finally {
+            isLoading = false
+        }
+    }
+
+    // compute stats
+    val totalSurat = documents.size
+    val approved = documents.count { it.status?.equals("approved", true) == true }
+    val rejected = documents.count { it.status?.equals("rejected", true) == true }
+    val pending = documents.count { it.status?.equals("pending", true) == true }
+
+    // recent activities: take latest 5 by createdAt (fallback to uploadedAt)
+    val recent = documents.sortedByDescending { it.createdAt ?: it.uploadedAt ?: "" }.take(5)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -70,7 +103,7 @@ fun AdminDashboardScreen(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color(0xFFC6C6C8)))
 
         Column(
@@ -79,20 +112,20 @@ fun AdminDashboardScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Stats Grid
+            // Stats Grid (dynamic values)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 AdminStatCard(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Schedule,
                     color = CustomPrimary,
-                    value = "24",
+                    value = pending.toString(),
                     label = "Pending"
                 )
                 AdminStatCard(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.CheckCircle,
                     color = CustomSuccess,
-                    value = "156",
+                    value = approved.toString(),
                     label = "Approved"
                 )
             }
@@ -102,21 +135,21 @@ fun AdminDashboardScreen(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Cancel,
                     color = CustomDanger,
-                    value = "8",
+                    value = rejected.toString(),
                     label = "Rejected"
                 )
                 AdminStatCard(
                     modifier = Modifier.weight(1f),
-                    icon = Icons.Default.Group,
+                    icon = Icons.Default.Description,
                     color = CustomWarning,
-                    value = "188",
-                    label = "Total Mhs"
+                    value = totalSurat.toString(),
+                    label = "Total Surat"
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Recent Activity
+            // Recent Activity (dynamic)
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
@@ -131,27 +164,32 @@ fun AdminDashboardScreen(
                         Text("Aktivitas Terbaru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Icon(Icons.Default.Notifications, null, tint = CustomWarning, modifier = Modifier.size(20.dp))
                     }
-                    
-                    ActivityItem(
-                        icon = Icons.Default.Description,
-                        color = CustomPrimary,
-                        title = "Surat 1A - Budi Santoso",
-                        subtitle = "Menunggu approval • 2 jam lalu"
-                    )
-                    Divider(modifier = Modifier.padding(vertical = 12.dp))
-                    ActivityItem(
-                        icon = Icons.Default.CheckCircle,
-                        color = CustomSuccess,
-                        title = "Form 2A - Ani Wijaya",
-                        subtitle = "Disetujui • 5 jam lalu"
-                    )
-                    Divider(modifier = Modifier.padding(vertical = 12.dp))
-                    ActivityItem(
-                        icon = Icons.Default.Warning,
-                        color = CustomWarning,
-                        title = "Form 3A - Dedi Susanto",
-                        subtitle = "Perlu revisi • 1 hari lalu"
-                    )
+
+                    if (isLoading) {
+                        Text("Memuat...")
+                    } else if (error != null) {
+                        Text("Error: $error")
+                    } else if (recent.isEmpty()) {
+                        Text("Tidak ada aktivitas")
+                    } else {
+                        recent.forEach { doc ->
+                            val title = doc.name ?: doc.description ?: "Surat #${doc.id}"
+                            val time = relativeTimeAgo(doc.uploadedAt ?: doc.createdAt)
+                            val icon = when (doc.status?.lowercase()) {
+                                "approved" -> Icons.Default.CheckCircle
+                                "rejected" -> Icons.Default.Cancel
+                                else -> Icons.Default.Description
+                            }
+                            val color = when (doc.status?.lowercase()) {
+                                "approved" -> CustomSuccess
+                                "rejected" -> CustomDanger
+                                else -> CustomPrimary
+                            }
+
+                            ActivityItem(icon = icon, color = color, title = title, subtitle = "${doc.userId} • $time")
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                        }
+                    }
                 }
             }
 
@@ -164,7 +202,7 @@ fun AdminDashboardScreen(
                     icon = Icons.Default.Description,
                     color = CustomPrimary,
                     title = "Kelola Surat",
-                    subtitle = "24 pending",
+                    subtitle = "$pending pending",
                     onClick = { onNavigate("admin-surat") }
                 )
                 AdminMenuCard(
@@ -172,11 +210,30 @@ fun AdminDashboardScreen(
                     icon = Icons.Default.Group,
                     color = CustomSuccess,
                     title = "Data Mahasiswa",
-                    subtitle = "188 mahasiswa",
+                    subtitle = awardeeCount?.let { "$it mahasiswa" } ?: "Memuat...",
                     onClick = { onNavigate("admin-mahasiswa") }
                 )
             }
         }
+    }
+}
+
+fun relativeTimeAgo(timeStr: String?): String {
+    if (timeStr.isNullOrBlank()) return "Unknown time"
+
+    return try {
+        val dateTime = OffsetDateTime.parse(timeStr)
+        val now = OffsetDateTime.now()
+        val diff = now.toEpochSecond() - dateTime.toEpochSecond()
+
+        when {
+            diff < 60 -> "${diff}s ago"
+            diff < 3600 -> "${diff / 60}m ago"
+            diff < 86400 -> "${diff / 3600}h ago"
+            else -> "${diff / 86400}d ago"
+        }
+    } catch (_: Exception) {
+        "Invalid date"
     }
 }
 

@@ -1,6 +1,11 @@
 package com.wahyuagast.keamanansisteminformasimobile.ui.screens.student
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -8,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,19 +21,74 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel
+import com.wahyuagast.keamanansisteminformasimobile.utils.FileUtils
+import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
 @Composable
 fun ProfileScreen(
-    userData: Map<String, String>,
+    viewModel: MahasiswaProfileViewModel = viewModel(),
     onBack: () -> Unit
 ) {
-    // Local state for editing to simulate behavior
+    LaunchedEffect(Unit) { viewModel.loadProfile() }
+
+    val state = viewModel.profileState
+    val updateState = viewModel.updateState
+    val context = LocalContext.current
+
+    // Observe update state for Toast
+    LaunchedEffect(updateState) {
+        if (updateState is Resource.Success) {
+            Toast.makeText(context, updateState.data?.message ?: "Update Success", Toast.LENGTH_SHORT).show()
+            viewModel.resetUpdateState()
+        } else if (updateState is Resource.Error) {
+            Toast.makeText(context, updateState.message, Toast.LENGTH_SHORT).show()
+            viewModel.resetUpdateState()
+        }
+    }
+
+    // Image Picker
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> selectedImageUri = uri }
+
+    // Form State
     var isEditing by remember { mutableStateOf(false) }
-    var formData by remember { mutableStateOf(userData) }
+    
+    var email by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var nim by remember { mutableStateOf("") }
+    var degree by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var studyProgramId by remember { mutableStateOf("") } // Store ID as string
+    var year by remember { mutableStateOf("") }
+    var fullname by remember { mutableStateOf("") }
+
+    // Sync state to form
+    LaunchedEffect(state) {
+        if (state is Resource.Success && !isEditing) {
+            val u = state.data.user
+            val a = u.awardee
+            email = u.email
+            username = a?.username ?: ""
+            nim = a?.nim ?: ""
+            degree = a?.degree ?: ""
+            phone = a?.phoneNumber ?: ""
+            // Bind ID. If we want to show text name, we'd need a map or lookup. 
+            // For now, binding ID so update works. User sees ID in text field if editable.
+            // Ideally non-editable if just ID.
+            studyProgramId = a?.studyProgramId?.toString() ?: "" 
+            year = a?.year ?: ""
+            fullname = a?.fullname ?: ""
+        }
+    }
 
     val scrollState = rememberScrollState()
 
@@ -38,13 +97,13 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(CustomBackground)
     ) {
-        // Header
+        // App Bar
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
-                .padding(top = 24.dp) // Extra top padding
+                .padding(top = 24.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -75,7 +134,9 @@ fun ProfileScreen(
                 TextButton(
                     onClick = { 
                         if (isEditing) {
-                            // Save logic (mock)
+                            // SAVE
+                            val file = selectedImageUri?.let { FileUtils.getFileFromUri(context, it) }
+                            viewModel.updateProfile(email, username, nim, degree, phone, studyProgramId, year, fullname, file)
                             isEditing = false
                         } else {
                             isEditing = true
@@ -93,114 +154,130 @@ fun ProfileScreen(
         
         Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color(0xFFC6C6C8)))
 
-        // Content
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(16.dp)
-        ) {
-            // Photo Section
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Box(
-                        modifier = Modifier
-                            .size(96.dp)
-                            .background(CustomPrimary, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
-                    if (isEditing) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .size(32.dp)
-                                .background(Color.White, CircleShape)
-                                .shadow(4.dp, CircleShape)
-                                .padding(4.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = "Edit Photo",
-                                tint = CustomPrimary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Text(
-                    text = formData["nama"] ?: "",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = CustomBlack
-                )
-                Text(
-                    text = formData["nim"] ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = CustomGray
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Form Card
+        if (state is Resource.Loading && !isEditing) {
+             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CustomPrimary) }
+        } else {
+            // Content
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(16.dp)
             ) {
-                ProfileItem(
-                    icon = Icons.Default.Person,
-                    label = "Nama Lengkap",
-                    value = formData["nama"] ?: "",
-                    isEditing = isEditing,
-                    onValueChange = { formData = formData.toMutableMap().apply { put("nama", it) } }
-                )
-                Divider()
-                ProfileItem(
-                    icon = Icons.Default.Book,
-                    label = "NIM",
-                    value = formData["nim"] ?: "",
-                    isEditing = false // NIM usually not editable
-                )
-                Divider()
-                ProfileItem(
-                    icon = Icons.Default.Book, // Using book for Prodi as approx
-                    label = "Program Studi",
-                    value = formData["prodi"] ?: "",
-                    isEditing = isEditing,
-                     onValueChange = { formData = formData.toMutableMap().apply { put("prodi", it) } }
-                )
-                Divider()
-                ProfileItem(
-                    icon = Icons.Default.Email,
-                    label = "Email",
-                    value = formData["email"] ?: "",
-                    isEditing = isEditing,
-                     onValueChange = { formData = formData.toMutableMap().apply { put("email", it) } }
-                )
-                Divider()
-                ProfileItem(
-                    icon = Icons.Default.Phone,
-                    label = "Nomor Telepon",
-                    value = formData["phone"] ?: "",
-                    isEditing = isEditing,
-                     onValueChange = { formData = formData.toMutableMap().apply { put("phone", it) } }
-                )
+                // Photo Section
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                         // Avatar
+                        Box(
+                            modifier = Modifier.size(96.dp).background(CustomPrimary, CircleShape)
+                                .clip(CircleShape)
+                                .clickable(enabled = isEditing) { launcher.launch("image/*") },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (selectedImageUri != null) {
+                                 AsyncImage(
+                                     model = selectedImageUri,
+                                     contentDescription = null,
+                                     modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                     contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                 )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                        }
+
+                        if (isEditing) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(32.dp)
+                                    .background(Color.White, CircleShape)
+                                    .shadow(4.dp, CircleShape)
+                                    .padding(4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = "Edit Photo",
+                                    tint = CustomPrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Text(
+                        text = fullname.ifEmpty { "Nama Mahasiswa" },
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = CustomBlack
+                    )
+                    Text(
+                        text = nim.ifEmpty { "-" },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CustomGray
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // Form Card
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White, RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                ) {
+                    ProfileItem(
+                        icon = Icons.Default.Person,
+                        label = "Nama Lengkap",
+                        value = fullname,
+                        isEditing = isEditing,
+                        onValueChange = { fullname = it }
+                    )
+                    Divider()
+                    ProfileItem(
+                        icon = Icons.Default.Book,
+                        label = "NIM",
+                        value = nim,
+                        isEditing = isEditing, // Assuming NIM is editable for now based on API updateProfile having it
+                        onValueChange = { nim = it }
+                    )
+                    Divider()
+                    ProfileItem(
+                        icon = Icons.Default.Book, 
+                        label = "Program Studi ID", // Label changed to reflect it's likely an ID now
+                        value = studyProgramId,
+                        isEditing = false, // ID shouldn't be edited manually as text usually
+                         onValueChange = { studyProgramId = it }
+                    )
+                    Divider()
+                    ProfileItem(
+                        icon = Icons.Default.Email,
+                        label = "Email",
+                        value = email,
+                        isEditing = isEditing,
+                         onValueChange = { email = it }
+                    )
+                    Divider()
+                    ProfileItem(
+                        icon = Icons.Default.Phone,
+                        label = "Nomor Telepon",
+                        value = phone,
+                        isEditing = isEditing,
+                         onValueChange = { phone = it }
+                    )
+                }
             }
         }
     }
@@ -235,14 +312,13 @@ fun ProfileItem(
                 modifier = Modifier.padding(bottom = 2.dp)
             )
             if (isEditing) {
-                // Determine keyboard type if needed, basic implementation
                 BasicTextFieldCompat(
                      value = value,
                      onValueChange = onValueChange
                 )
             } else {
                 Text(
-                    text = value,
+                    text = value.ifEmpty { "-" },
                     style = MaterialTheme.typography.bodyMedium,
                     color = CustomBlack
                 )
@@ -263,7 +339,6 @@ fun Divider() {
 
 @Composable
 private fun BasicTextFieldCompat(value: String, onValueChange: (String) -> Unit) {
-    // Custom basic text field to match the plain look
     TextField(
         value = value,
         onValueChange = onValueChange,
@@ -271,7 +346,7 @@ private fun BasicTextFieldCompat(value: String, onValueChange: (String) -> Unit)
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.Transparent,
             unfocusedContainerColor = Color.Transparent,
-            focusedIndicatorColor = Color.Transparent, // No line
+            focusedIndicatorColor = Color.Transparent, 
             unfocusedIndicatorColor = Color.Transparent
         ),
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = CustomBlack)

@@ -23,10 +23,27 @@ import com.wahyuagast.keamanansisteminformasimobile.ui.components.PrimaryButton
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
 
 @Composable
-fun SuratScreen(onBack: () -> Unit) {
+fun SuratScreen(
+    onBack: () -> Unit,
+    viewModel: com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
     var showForm by remember { mutableStateOf(false) }
     
-    // Mock Data
+    // Wire up ViewModel logic for the dialog
+    val documentTypesState = viewModel.documentTypesState
+    val documentSubmissionState = viewModel.documentSubmissionState
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Handle Submission Success
+    LaunchedEffect(documentSubmissionState) {
+        if (documentSubmissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success) {
+            showForm = false
+            viewModel.resetDocumentSubmissionState()
+            android.widget.Toast.makeText(context, "Pengajuan berhasil!", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    // Mock Data (Keeping this for list display as requested list fix wasn't specific, but Dialog was)
     val mockSurat = listOf(
         SuratItem(1, "Surat 1A", "approved", "20 Nov 2024", ""),
         SuratItem(2, "Surat 2A", "pending", "22 Nov 2024", ""),
@@ -43,7 +60,10 @@ fun SuratScreen(onBack: () -> Unit) {
             CommonHeader(title = "Pengajuan Surat", onBack = onBack) {
                 // Add Button
                  IconButton(
-                    onClick = { showForm = true },
+                    onClick = { 
+                        viewModel.loadDocumentTypes()
+                        showForm = true 
+                    },
                     modifier = Modifier
                         .size(36.dp)
                         .background(CustomPrimary, CircleShape)
@@ -73,7 +93,21 @@ fun SuratScreen(onBack: () -> Unit) {
         
         // Modal / Overlay for Form
         if (showForm) {
-            AjukanSuratDialog(onDismiss = { showForm = false })
+            val typeState = viewModel.documentTypesState
+            val types = if (typeState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success) typeState.data.documentTypes else emptyList()
+            val isSubmitting = viewModel.documentSubmissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Loading
+            val submissionState = viewModel.documentSubmissionState
+            val errorMessage = if (submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Error) submissionState.message else null
+
+            com.wahyuagast.keamanansisteminformasimobile.ui.components.PengajuanSuratDialog(
+                documentTypes = types,
+                isLoading = isSubmitting,
+                errorMessage = errorMessage,
+                onDismiss = { showForm = false },
+                onSubmit = { typeId, desc ->
+                    viewModel.submitDocumentRequest(typeId, desc)
+                }
+            )
         }
     }
 }

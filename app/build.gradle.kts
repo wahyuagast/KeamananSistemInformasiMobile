@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,9 +9,7 @@ plugins {
 
 android {
     namespace = "com.wahyuagast.keamanansisteminformasimobile"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.wahyuagast.keamanansisteminformasimobile"
@@ -19,6 +19,20 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Read from local.properties
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { localProperties.load(it) }
+        }
+
+        // avoid hardcoded api key in code
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"${localProperties.getProperty("API_BASE_URL", "https://your-api-url.com")}\""
+        )
     }
 
     buildTypes {
@@ -30,15 +44,19 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     kotlinOptions {
         jvmTarget = "11"
     }
+
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -56,6 +74,7 @@ dependencies {
     implementation(libs.ads.mobile.sdk)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.play.services.identity.credentials)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -78,4 +97,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0")
 
     implementation("androidx.compose.material3:material3:1.3.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.1")
+
+    // EncryptedSharedPreferences
+    implementation("androidx.security:security-crypto:1.1.0")
 }

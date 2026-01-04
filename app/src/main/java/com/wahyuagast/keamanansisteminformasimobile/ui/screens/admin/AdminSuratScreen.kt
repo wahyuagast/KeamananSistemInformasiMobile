@@ -1,7 +1,7 @@
 package com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin
 
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,21 +17,32 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.CommonHeader
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository
+import kotlinx.coroutines.launch
+import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 
 @Composable
-fun AdminSuratScreen(onBack: () -> Unit) {
-    var selectedSurat by remember { mutableStateOf<AdminSuratItem?>(null) }
+fun AdminSuratScreen(
+    onBack: () -> Unit,
+    documents: List<DocumentItem>? = null,
+    onAction: (id: Int, action: String, comment: String?) -> Unit = { _, _, _ -> }
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val repo = remember { DocumentRepository() }
+    val selectedSuratState = remember { mutableStateOf<DocumentItem?>(null) }
     var activeFilter by remember { mutableStateOf("Semua") }
 
-    val suratList = listOf(
-        AdminSuratItem(1, "Surat 1A", "Budi Santoso", "2021001", "27 Nov 2024", "pending"),
-        AdminSuratItem(2, "Surat 2A", "Ani Wijaya", "2021002", "26 Nov 2024", "pending"),
-        AdminSuratItem(3, "Surat 2B", "Citra Dewi", "2021003", "25 Nov 2024", "approved")
+    // Use provided documents when available, else fallback to a small sample
+    val suratList = documents ?: listOf(
+        DocumentItem(1, 11, 6, "Form 2C", "Mohon buatkan saya Form 2C", null, "Pending", "2025-12-27T06:01:28.000000Z", "2025-12-27T13:01:27.000000Z", "2025-12-27T13:01:27.000000Z"),
+        DocumentItem(2, 11, 6, null, "Mohon buatkan saya Form 2C", null, "Pending", "2025-12-28T19:30:10.000000Z", "2025-12-29T02:30:10.000000Z", "2025-12-29T02:30:10.000000Z")
     )
 
     Column(
@@ -83,23 +94,33 @@ fun AdminSuratScreen(onBack: () -> Unit) {
             ) {
                 suratList.forEach { surat ->
                     AdminSuratCard(surat) {
-                        selectedSurat = surat
+                        selectedSuratState.value = surat
                     }
                 }
             }
         }
     }
 
-    if (selectedSurat != null) {
+    if (selectedSuratState.value != null) {
+        val selectedSurat = selectedSuratState.value!!
         AdminSuratDetailDialog(
-            surat = selectedSurat!!,
-            onDismiss = { selectedSurat = null }
+            surat = selectedSurat,
+            onDismiss = { selectedSuratState.value = null },
+            onAction = { id, action, comment ->
+                // perform network action and show toast with result
+                scope.launch {
+                    val ok = if (action == "approve") repo.approveDocument(id, comment) else repo.rejectDocument(id, comment)
+                    if (ok) Toast.makeText(context, "Sukses: $action", Toast.LENGTH_SHORT).show() else Toast.makeText(context, "Gagal: $action", Toast.LENGTH_SHORT).show()
+                }
+                onAction(id, action, comment)
+                selectedSuratState.value = null
+            }
         )
     }
 }
 
 @Composable
-fun AdminSuratCard(surat: AdminSuratItem, onClick: () -> Unit) {
+fun AdminSuratCard(surat: DocumentItem, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -128,16 +149,19 @@ fun AdminSuratCard(surat: AdminSuratItem, onClick: () -> Unit) {
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(text = surat.jenis, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
-                        Text(text = "${surat.mahasiswa} • ${surat.nim}", style = MaterialTheme.typography.bodySmall, color = CustomGray)
-                        Text(text = surat.tanggal, style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        // show name if available, otherwise description
+                        val title = surat.name ?: surat.description ?: "-"
+                        Text(text = title, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
+                        Text(text = "ID: ${surat.user_id}", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        Text(text = formatUploadedAt(surat.uploaded_at), style = MaterialTheme.typography.bodySmall, color = CustomGray)
                     }
                 }
 
-                when (surat.status) {
+                when (surat.status?.lowercase()) {
                     "pending" -> StatusLabel("Pending", CustomWarning)
                     "approved" -> StatusLabel("Approved", CustomSuccess)
                     "rejected" -> StatusLabel("Rejected", CustomDanger)
+                    else -> StatusLabel(surat.status ?: "Unknown", CustomGray)
                 }
             }
         }
@@ -153,7 +177,7 @@ fun StatusLabel(text: String, color: Color) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = when(text) {
+                imageVector = when (text) {
                     "Pending" -> Icons.Default.Schedule
                     "Approved" -> Icons.Default.CheckCircle
                     else -> Icons.Default.Cancel
@@ -169,7 +193,14 @@ fun StatusLabel(text: String, color: Color) {
 }
 
 @Composable
-fun AdminSuratDetailDialog(surat: AdminSuratItem, onDismiss: () -> Unit) {
+fun AdminSuratDetailDialog(
+    surat: DocumentItem,
+    onDismiss: () -> Unit,
+    onAction: (id: Int, action: String, comment: String?) -> Unit
+) {
+    val context = LocalContext.current
+    var comment by remember { mutableStateOf("") }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
@@ -178,21 +209,27 @@ fun AdminSuratDetailDialog(surat: AdminSuratItem, onDismiss: () -> Unit) {
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Box(
-                    modifier = Modifier.align(Alignment.CenterHorizontally).width(40.dp).height(4.dp).background(Color(0xFFC6C6C8), CircleShape)
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(Color(0xFFC6C6C8), CircleShape)
                 )
                 Spacer(modifier = Modifier.height(24.dp))
 
-                DetailItem("Jenis Surat", surat.jenis)
-                DetailItem("Mahasiswa", "${surat.mahasiswa}\n${surat.nim}")
-                DetailItem("Tanggal", surat.tanggal)
+                DetailItem("Nama / Jenis", surat.name ?: "-")
+                DetailItem("Deskripsi", surat.description ?: "-")
+                DetailItem("Uploaded At", formatUploadedAt(surat.uploaded_at))
 
                 Spacer(modifier = Modifier.height(16.dp))
                 Text("Komentar", style = MaterialTheme.typography.bodySmall, color = CustomGray)
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
+                    value = comment,
+                    onValueChange = { comment = it },
                     placeholder = { Text("Tambahkan komentar...") },
-                    modifier = Modifier.fillMaxWidth().height(100.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         unfocusedBorderColor = CustomBackground,
                         focusedBorderColor = CustomPrimary
@@ -211,7 +248,10 @@ fun AdminSuratDetailDialog(surat: AdminSuratItem, onDismiss: () -> Unit) {
                         Text("Tutup")
                     }
                     Button(
-                        onClick = onDismiss,
+                        onClick = {
+                            onAction(surat.id, "reject", comment.ifBlank { null })
+                            Toast.makeText(context, "Ditolak", Toast.LENGTH_SHORT).show()
+                        },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = CustomDanger),
                         shape = RoundedCornerShape(12.dp)
@@ -219,7 +259,10 @@ fun AdminSuratDetailDialog(surat: AdminSuratItem, onDismiss: () -> Unit) {
                         Text("Tolak")
                     }
                     Button(
-                        onClick = onDismiss,
+                        onClick = {
+                            onAction(surat.id, "approve", comment.ifBlank { null })
+                            Toast.makeText(context, "Disetujui", Toast.LENGTH_SHORT).show()
+                        },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = CustomSuccess),
                         shape = RoundedCornerShape(12.dp)
@@ -240,4 +283,28 @@ fun DetailItem(label: String, value: String) {
     }
 }
 
-data class AdminSuratItem(val id: Int, val jenis: String, val mahasiswa: String, val nim: String, val tanggal: String, val status: String)
+// New data model matching the API response
+data class DocumentItem(
+    val id: Int,
+    val user_id: Int,
+    val document_type_id: Int,
+    val name: String?,
+    val description: String?,
+    val file_path: String?,
+    val status: String?,
+    val uploaded_at: String?,
+    val created_at: String?,
+    val updated_at: String?
+)
+
+// helper to format ISO offset datetimes gracefully
+fun formatUploadedAt(value: String?): String {
+    if (value.isNullOrBlank()) return "-"
+    return try {
+        val odt = OffsetDateTime.parse(value)
+        odt.format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"))
+    } catch (_: Exception) {
+        // fallback: return original
+        value
+    }
+}

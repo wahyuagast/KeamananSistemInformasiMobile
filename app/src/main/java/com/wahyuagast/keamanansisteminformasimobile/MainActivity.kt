@@ -25,15 +25,6 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val navController = rememberNavController()
-            
-            // Mock Data for Dashboard (In real app, fetch from ViewModel)
-            val userData = mapOf(
-                "nama" to "Budi Santoso",
-                "nim" to "2021001",
-                "email" to "budi@example.com",
-                "prodi" to "Teknik Informatika",
-                "phone" to "081234567890"
-            )
 
             KeamananSistemInformasiMobileTheme {
                 NavHost(navController = navController, startDestination = "login") {
@@ -42,8 +33,7 @@ class MainActivity : ComponentActivity() {
                     composable("login") {
                         LoginScreen(
                             onLoginSuccess = { user ->
-                                // Assuming role_id 3 is Admin based on shared artifact. 
-                                // Adjust this logic if other roles have specific IDs.
+                                // Role ID 3 = Admin, Role ID 2 = Mahasiswa (Student)
                                 if (user.roleId == 3) {
                                     navController.navigate("dashboard_admin") {
                                         popUpTo("login") { inclusive = true }
@@ -53,7 +43,6 @@ class MainActivity : ComponentActivity() {
                                         popUpTo("login") { inclusive = true }
                                     }
                                 }
-                                // Ideally, store the token/user session here (DataStore)
                             }
                         )
                     }
@@ -61,7 +50,6 @@ class MainActivity : ComponentActivity() {
                     // --- STUDENT ROUTES ---
                     composable("dashboard_mahasiswa") {
                         MahasiswaDashboardScreen(
-                            userData = userData,
                             onNavigate = { route -> navController.navigate(route) },
                             onLogout = {
                                 navController.navigate("login") {
@@ -73,7 +61,6 @@ class MainActivity : ComponentActivity() {
                     
                     composable("profile") {
                         ProfileScreen(
-                            userData = userData,
                             onBack = { navController.popBackStack() }
                         )
                     }
@@ -102,7 +89,7 @@ class MainActivity : ComponentActivity() {
                     composable("dashboard_admin") {
                         AdminDashboardScreen(
                             onNavigate = { route -> navController.navigate(route) },
-                            onLogout = {
+                            _onLogout = {
                                 navController.navigate("login") {
                                     popUpTo("dashboard_admin") { inclusive = true }
                                 }
@@ -118,6 +105,11 @@ class MainActivity : ComponentActivity() {
                         AdminMahasiswaScreen(onBack = { navController.popBackStack() })
                     }
                     
+                    composable("admin-registration/{id}") { backStackEntry ->
+                        val id = backStackEntry.arguments?.getString("id")?.toIntOrNull() ?: 0
+                        AdminRegistrationScreen(registrationId = id, onBack = { navController.popBackStack() })
+                    }
+
                     composable("admin-profile") {
                         AdminProfileScreen(
                             onBack = { navController.popBackStack() },

@@ -56,7 +56,7 @@ fun LoginScreen(
                 emailError = null
                 passwordError = null
             }
-            null -> {}
+            else -> {}
         }
     }
 

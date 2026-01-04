@@ -2,7 +2,7 @@ package com.wahyuagast.keamanansisteminformasimobile.ui.screens.student
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.* // Using * for brevity in layout imports given usage
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -16,6 +16,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,14 +28,31 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel
+import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
 @Composable
 fun MahasiswaDashboardScreen(
-    userData: Map<String, String>, // Placeholder for data
+    viewModel: MahasiswaProfileViewModel = viewModel(),
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit
 ) {
+    LaunchedEffect(Unit) { 
+        viewModel.loadProfile()
+        viewModel.loadMitras()
+    }
+    val state = viewModel.profileState
+
+    var userName = "Mahasiswa"
+    if (state is Resource.Success) {
+        val awardee = state.data.user.awardee
+        userName = awardee?.fullname ?: state.data.user.email
+    }
+    
+    // Handle Submission Success (Moved to SuratScreen)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -72,17 +92,23 @@ fun MahasiswaDashboardScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = CustomGray
                         )
-                        Text(
-                            text = userData["nama"] ?: "Mahasiswa",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = CustomBlack
-                        )
+                        if (state is Resource.Loading) {
+                             Box(modifier = Modifier.width(100.dp).height(20.dp).background(CustomGray.copy(alpha=0.2f), RoundedCornerShape(4.dp)))
+                        } else {
+                            Text(
+                                text = userName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = CustomBlack
+                            )
+                        }
                     }
                 }
                 
                 IconButton(
-                    onClick = onLogout,
+                    onClick = {
+                        viewModel.logout(onLogout)
+                    },
                     modifier = Modifier
                         .size(36.dp)
                         .background(CustomBackground, CircleShape)
@@ -160,7 +186,7 @@ fun MahasiswaDashboardScreen(
                                 .fillMaxWidth(0.6f)
                                 .height(8.dp)
                                 .background(Color.White, CircleShape)
-                        )
+                            )
                     }
                 }
             }
@@ -195,23 +221,40 @@ fun MahasiswaDashboardScreen(
                 icon = Icons.Default.Place,
                 iconTint = CustomPrimary
             ) {
-                ReferenceItem(
-                    name = "PT. Tech Nusantara",
-                    details = "Jakarta • 15 mahasiswa (2024)"
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                ReferenceItem(
-                    name = "BUMN Indonesia",
-                    details = "Bandung • 12 mahasiswa (2024)"
-                )
+                val mitraState = viewModel.mitraState
+                
+                when (mitraState) {
+                    is Resource.Loading -> {
+                        Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = CustomPrimary)
+                        }
+                    }
+                    is Resource.Success -> {
+                        val mitras = mitraState.data.mitra
+                        if (mitras.isEmpty()) {
+                             Text("Belum ada data mitra", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        } else {
+                            mitras.take(5).forEachIndexed { index, mitra ->
+                                ReferenceItem(
+                                    name = mitra.partnerName,
+                                    details = "${mitra.address} • ${mitra.email}"
+                                )
+                                if (index < mitras.size - 1) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                            }
+                        }
+                    }
+                    is Resource.Error -> {
+                        Text(text = "Gagal memuat: ${mitraState.message}", style = MaterialTheme.typography.bodySmall, color = CustomDanger)
+                    }
+                    else -> {}
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
             // Menu Grid
-            // Using a simple Column with Rows for grid layout inside a ScrollView, 
-            // since nested lazy grids can be tricky.
-            // Or just fixed layout since we have 6 items.
             val menuItems = listOf(
                 MenuItem("Profil", Icons.Default.Person, CustomPrimary, "profile"),
                 MenuItem("Pengajuan Surat", Icons.Default.Description, CustomSuccess, "surat"),
@@ -230,7 +273,9 @@ fun MahasiswaDashboardScreen(
                     rowItems.forEach { item ->
                         MenuButton(
                             item = item,
-                            onClick = { onNavigate(item.route) },
+                            onClick = { 
+                                onNavigate(item.route)
+                            },
                             modifier = Modifier.weight(1f)
                         )
                     }

@@ -32,13 +32,13 @@ class AdminProfileViewModel(application: Application) : AndroidViewModel(applica
 
     fun updateProfile(
         email: String, username: String, nim: String, degree: String, 
-        phoneNumber: String, studyProgram: String, year: String, fullname: String,
+        phoneNumber: String, studyProgramId: String, year: String, fullname: String,
         imageFile: java.io.File?
     ) {
         viewModelScope.launch {
             updateState = Resource.Loading
             updateState = repository.updateProfile(
-                email, username, nim, degree, phoneNumber, studyProgram, year, fullname, imageFile
+                email, username, nim, degree, phoneNumber, studyProgramId, year, fullname, imageFile
             )
             // Reload profile on success
             if (updateState is Resource.Success) {

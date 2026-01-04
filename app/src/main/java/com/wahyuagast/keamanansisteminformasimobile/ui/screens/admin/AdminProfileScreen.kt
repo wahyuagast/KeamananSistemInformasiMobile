@@ -67,7 +67,7 @@ fun AdminProfileScreen(
     var nim by remember { mutableStateOf("") }
     var degree by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var studyProgram by remember { mutableStateOf("") }
+    var studyProgramId by remember { mutableStateOf("") }
     var year by remember { mutableStateOf("") }
     var fullname by remember { mutableStateOf("") }
 
@@ -81,9 +81,8 @@ fun AdminProfileScreen(
             nim = a?.nim ?: ""
             degree = a?.degree ?: ""
             phone = a?.phoneNumber ?: ""
-            studyProgram = "Computer Science" // Hardcoded in prompt example variable. Ideally "a?.studyProgramId" map to name or text field.
-            // Wait, prompt screenshot shows "study_program" is text "Computer Science".
-            // But API response shows `study_program_id`. I'll assume text field input for now as per prompt keys.
+            // Bind ID, similar to student profile
+            studyProgramId = a?.studyProgramId?.toString() ?: ""
             year = a?.year ?: ""
             fullname = a?.fullname ?: ""
         }
@@ -111,7 +110,7 @@ fun AdminProfileScreen(
                     if (isEditing) {
                         // SAVE
                         val file = selectedImageUri?.let { com.wahyuagast.keamanansisteminformasimobile.utils.FileUtils.getFileFromUri(context, it) }
-                        viewModel.updateProfile(email, username, nim, degree, phone, studyProgram, year, fullname, file)
+                        viewModel.updateProfile(email, username, nim, degree, phone, studyProgramId, year, fullname, file)
                         isEditing = false
                     } else {
                         isEditing = true
@@ -175,7 +174,7 @@ fun AdminProfileScreen(
                          Divider(Modifier.padding(vertical = 8.dp))
                          EditProfileField("Phone", phone, isEditing) { phone = it }
                          Divider(Modifier.padding(vertical = 8.dp))
-                         EditProfileField("Study Program", studyProgram, isEditing) { studyProgram = it }
+                         EditProfileField("Study Program ID", studyProgramId, isEditing) { studyProgramId = it }
                          Divider(Modifier.padding(vertical = 8.dp))
                          EditProfileField("Year", year, isEditing) { year = it }
                     }

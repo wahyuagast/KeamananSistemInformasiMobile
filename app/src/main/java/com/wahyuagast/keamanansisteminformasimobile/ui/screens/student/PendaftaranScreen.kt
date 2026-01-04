@@ -11,31 +11,59 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.MenuAnchorType
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel
+import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PendaftaranScreen(onBack: () -> Unit) {
+fun PendaftaranScreen(
+    onBack: () -> Unit,
+    viewModel: MahasiswaProfileViewModel = viewModel()
+) {
+    LaunchedEffect(Unit) {
+        viewModel.loadRegistrationStatus()
+    }
+    val regState = viewModel.registrationState
+    val formState = viewModel.formSubmissionState
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Form State
+    var selectedMitra by remember {
+        mutableStateOf<com.wahyuagast.keamanansisteminformasimobile.data.model.MitraDto?>(
+            null
+        )
+    }
+    var selectedPeriode by remember { mutableStateOf<String>("") } // Using ID
+    var startDate by remember { mutableStateOf("") }
+    var endDate by remember { mutableStateOf("") }
+
+    // UI State
     var showGuide by remember { mutableStateOf(false) }
-    var isFormFilled by remember { mutableStateOf(false) } // State to track if form is filled
+    var showMitraDropdown by remember { mutableStateOf(false) }
+    var showPeriodeDropdown by remember { mutableStateOf(false) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
 
-    // Mock Data State
-    var documents by remember { mutableStateOf(listOf(
-        DocumentItem("form2a", "Form 2A", "empty"),
-        DocumentItem("form2b", "Form 2B", "empty"),
-        DocumentItem("transkrip", "Transkrip Nilai", "empty"),
-        DocumentItem("suratTerima", "Surat Keterangan Diterima", "empty")
-    )) }
-
-    val progress = if (isFormFilled) 50 else 0 // Mock progress
+    // Mock Documents
+    var documents by remember {
+        mutableStateOf(
+            listOf(
+                DocumentItem("form2a", "Form 2A", "empty"),
+                DocumentItem("form2b", "Form 2B", "empty"),
+                DocumentItem("transkrip", "Transkrip Nilai", "empty"),
+                DocumentItem("suratTerima", "Surat Keterangan Diterima", "empty")
+            )
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -65,116 +93,437 @@ fun PendaftaranScreen(onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Guide
-            if (showGuide) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = CustomPrimary.copy(alpha = 0.1f)),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CustomPrimary.copy(alpha = 0.2f)),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Panduan Pendaftaran", color = CustomBlack, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "1. Isi Form Pendaftaran Online terlebih dahulu", style = MaterialTheme.typography.bodySmall, color = CustomBlack)
-                        Text(text = "2. Upload Form 2A (Formulir Pendaftaran)", style = MaterialTheme.typography.bodySmall, color = CustomBlack)
-                        Text(text = "3. Upload Form 2B (Biodata Mahasiswa)", style = MaterialTheme.typography.bodySmall, color = CustomBlack)
-                        Text(text = "4. Upload Transkrip Nilai terbaru", style = MaterialTheme.typography.bodySmall, color = CustomBlack)
-                        Text(text = "5. Upload Surat Keterangan Diterima", style = MaterialTheme.typography.bodySmall, color = CustomBlack)
-                        Text(text = "6. Tunggu verifikasi dari admin", style = MaterialTheme.typography.bodySmall, color = CustomBlack)
-                    }
-                }
-            }
-
-            // Form Online Button (Moved to the top)
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(CustomSuccess.copy(alpha = 0.1f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Description,
-                                contentDescription = null,
-                                tint = CustomSuccess,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(text = "Form Pendaftaran Online", color = CustomBlack, style = MaterialTheme.typography.bodyMedium)
-                            Text(text = "Isi data PKL Anda terlebih dahulu", color = CustomGray, style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    Button(
-                        onClick = { isFormFilled = true }, // Set state to true on click
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        enabled = !isFormFilled, // Disable button after it's clicked
-                        colors = ButtonDefaults.buttonColors(containerColor = CustomSuccess)
-                    ) {
-                        if(isFormFilled) {
-                            Icon(Icons.Default.Check, "Form Filled")
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Form Sudah Diisi")
-                        } else {
-                            Text("Isi Form")
-                        }
-                    }
-                }
-            }
-
-            // Show progress and documents only after form is filled
-            if (isFormFilled) {
-                // Progress
+            // 1. Registration Status
+            if (regState is Resource.Success) {
+                val data = regState.data
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = "Progress Pendaftaran", color = CustomBlack, style = MaterialTheme.typography.bodyMedium)
-                            Text(text = "$progress%", color = CustomPrimary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            val statusText =
+                                data.status.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                            Text(
+                                text = "Status: $statusText",
+                                color = CustomBlack,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "${data.progress}%",
+                                color = CustomPrimary,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         LinearProgressIndicator(
-                            progress = { progress / 100f },
-                            modifier = Modifier.fillMaxWidth().height(8.dp),
+                            progress = { data.progress / 100f },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp),
                             color = CustomPrimary,
                             trackColor = CustomBackground,
                             strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
                         )
+                        data.message?.let { msg ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = msg,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CustomGray
+                            )
+                        }
                     }
                 }
-
-                // Documents
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            } else if (regState is Resource.Loading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator(color = CustomPrimary) }
+            } else if (regState is Resource.Error) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = CustomDanger.copy(alpha = 0.1f)),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
                 ) {
-                    documents.forEach { doc ->
-                        DocumentCard(
-                            doc = doc,
-                            onUpload = {
-                                // Mock upload
-                                documents = documents.map {
-                                    if (it.id == doc.id) it.copy(status = "pending") else it
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Error, null, tint = CustomDanger)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = regState.message,
+                            color = CustomDanger,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    // Retry Button
+                    Button(
+                        onClick = { viewModel.loadRegistrationStatus() },
+                        colors = ButtonDefaults.buttonColors(containerColor = CustomDanger),
+                        modifier = Modifier
+                            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                            .fillMaxWidth()
+                    ) {
+                        Text("Retry")
+                    }
+                }
+            }
+
+
+            // 2. Guide
+            if (showGuide) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = CustomPrimary.copy(alpha = 0.1f)),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        CustomPrimary.copy(alpha = 0.2f)
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Panduan Pendaftaran",
+                            color = CustomBlack,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "1. Isi Form Pendaftaran Online",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomBlack
+                        )
+                        Text(
+                            text = "2. Upload Dokumen",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomBlack
+                        )
+                        Text(
+                            text = "3. Tunggu Verifikasi",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomBlack
+                        )
+                    }
+                }
+            }
+
+            // 3. Documents List
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(bottom = 16.dp)
+            ) {
+                documents.forEach { doc ->
+                    DocumentCard(
+                        doc = doc,
+                        onUpload = {
+                            documents =
+                                documents.map { if (it.id == doc.id) it.copy(status = "pending") else it }
+                        }
+                    )
+                }
+            }
+
+            // Message UI (Relocated)
+            if (formState is Resource.Error) {
+                val message = formState.message
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = CustomDanger.copy(alpha = 0.1f)),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Error, null, tint = CustomDanger)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = message,
+                            color = CustomDanger,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            } else if (formState is Resource.Success) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = CustomSuccess.copy(alpha = 0.1f)),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.CheckCircle, null, tint = CustomSuccess)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = formState.data.message ?: "",
+                            color = CustomSuccess,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
+            // 4. Form Pendaftaran Online
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Form Pendaftaran Online",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Mitra Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = showMitraDropdown,
+                        onExpandedChange = { showMitraDropdown = !showMitraDropdown }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedMitra?.partnerName ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Pilih Mitra") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showMitraDropdown) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = CustomPrimary,
+                                focusedLabelColor = CustomPrimary
+                            )
+                        )
+                        ExposedDropdownMenu(
+                            expanded = showMitraDropdown,
+                            onDismissRequest = { showMitraDropdown = false }
+                        ) {
+                            if (regState is Resource.Success) {
+                                regState.data.mitras.forEach { mitra ->
+                                    DropdownMenuItem(
+                                        text = { Text(mitra.partnerName ?: "") },
+                                        onClick = {
+                                            selectedMitra = mitra
+                                            showMitraDropdown = false
+                                        }
+                                    )
                                 }
                             }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Periode Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = showPeriodeDropdown,
+                        onExpandedChange = { showPeriodeDropdown = !showPeriodeDropdown }
+                    ) {
+                        val selectedPeriodeName = if (regState is Resource.Success) {
+                            regState.data.periods.find { it.id.toString() == selectedPeriode }?.name
+                                ?: ""
+                        } else ""
+
+                        OutlinedTextField(
+                            value = selectedPeriodeName,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Pilih Periode") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showPeriodeDropdown) },
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = CustomPrimary,
+                                focusedLabelColor = CustomPrimary
+                            )
                         )
+                        ExposedDropdownMenu(
+                            expanded = showPeriodeDropdown,
+                            onDismissRequest = { showPeriodeDropdown = false }
+                        ) {
+                            if (regState is Resource.Success) {
+                                regState.data.periods.forEach { periode ->
+                                    DropdownMenuItem(
+                                        text = { Text(periode.name ?: "") },
+                                        onClick = {
+                                            selectedPeriode = periode.id.toString()
+                                            // Auto-fill dates
+                                            startDate = periode.startDate?.replace("-", "/") ?: ""
+                                            endDate = periode.endDate?.replace("-", "/") ?: ""
+                                            showPeriodeDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Start Date
+                    OutlinedTextField(
+                        value = startDate,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Tanggal Mulai") },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.DateRange,
+                                null,
+                                modifier = Modifier.clickable { showStartDatePicker = true })
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showStartDatePicker = true },
+                        enabled = false, // Disable text input, rely on click
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = CustomBlack,
+                            disabledBorderColor = CustomGray,
+                            disabledLabelColor = CustomGray,
+                            disabledTrailingIconColor = CustomPrimary
+                        )
+                    )
+                    if (showStartDatePicker) {
+                        val datePickerState = rememberDatePickerState()
+                        DatePickerDialog(
+                            onDismissRequest = { showStartDatePicker = false },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    datePickerState.selectedDateMillis?.let { millis ->
+                                        val date = java.text.SimpleDateFormat(
+                                            "yyyy/MM/dd",
+                                            java.util.Locale.getDefault()
+                                        ).format(java.util.Date(millis))
+                                        startDate = date
+                                    }
+                                    showStartDatePicker = false
+                                }) { Text("OK", color = CustomPrimary) }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = {
+                                    showStartDatePicker = false
+                                }) { Text("Cancel", color = CustomDanger) }
+                            }
+                        ) {
+                            DatePicker(state = datePickerState)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // End Date
+                    OutlinedTextField(
+                        value = endDate,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Tanggal Selesai") },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.DateRange,
+                                null,
+                                modifier = Modifier.clickable { showEndDatePicker = true })
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showEndDatePicker = true },
+                        enabled = false,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            disabledTextColor = CustomBlack,
+                            disabledBorderColor = CustomGray,
+                            disabledLabelColor = CustomGray,
+                            disabledTrailingIconColor = CustomPrimary
+                        )
+                    )
+                    if (showEndDatePicker) {
+                        val datePickerState = rememberDatePickerState()
+                        DatePickerDialog(
+                            onDismissRequest = { showEndDatePicker = false },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    datePickerState.selectedDateMillis?.let { millis ->
+                                        val date = java.text.SimpleDateFormat(
+                                            "yyyy/MM/dd",
+                                            java.util.Locale.getDefault()
+                                        ).format(java.util.Date(millis))
+                                        endDate = date
+                                    }
+                                    showEndDatePicker = false
+                                }) { Text("OK", color = CustomPrimary) }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showEndDatePicker = false }) {
+                                    Text(
+                                        "Cancel",
+                                        color = CustomDanger
+                                    )
+                                }
+                            }
+                        ) {
+                            DatePicker(state = datePickerState)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = {
+                            if (selectedMitra != null && selectedPeriode.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()) {
+                                viewModel.submitRegistrationForm(
+                                    selectedMitra!!.id.toString(),
+                                    selectedPeriode,
+                                    startDate,
+                                    endDate
+                                )
+                            } else {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Mohon lengkapi semua data",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = formState !is Resource.Loading,
+                        colors = ButtonDefaults.buttonColors(containerColor = CustomPrimary)
+                    ) {
+                        if (formState is Resource.Loading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        } else {
+                            Text("Simpan & Lanjutkan")
+                        }
                     }
                 }
             }
@@ -203,7 +552,7 @@ fun DocumentCard(doc: DocumentItem, onUpload: () -> Unit) {
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.InsertDriveFile,
+                            imageVector = Icons.Filled.InsertDriveFile,
                             contentDescription = null,
                             tint = CustomPrimary,
                             modifier = Modifier.size(20.dp)
@@ -211,16 +560,41 @@ fun DocumentCard(doc: DocumentItem, onUpload: () -> Unit) {
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(text = doc.name, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
-                        Text(text = "PDF, max 2MB", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        Text(
+                            text = doc.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = CustomBlack
+                        )
+                        Text(
+                            text = "PDF, max 2MB",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomGray
+                        )
                     }
                 }
 
                 // Status Icon
                 when (doc.status) {
-                    "uploaded" -> Icon(Icons.Default.CheckCircle, null, tint = CustomSuccess, modifier = Modifier.size(20.dp))
-                    "pending" -> Icon(Icons.Default.Schedule, null, tint = CustomWarning, modifier = Modifier.size(20.dp))
-                    else -> Icon(Icons.Default.Upload, null, tint = CustomPrimary, modifier = Modifier.size(20.dp))
+                    "uploaded" -> Icon(
+                        Icons.Default.CheckCircle,
+                        null,
+                        tint = CustomSuccess,
+                        modifier = Modifier.size(20.dp)
+                    )
+
+                    "pending" -> Icon(
+                        Icons.Default.Schedule,
+                        null,
+                        tint = CustomWarning,
+                        modifier = Modifier.size(20.dp)
+                    )
+
+                    else -> Icon(
+                        Icons.Default.Upload,
+                        null,
+                        tint = CustomPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
@@ -239,6 +613,7 @@ fun DocumentCard(doc: DocumentItem, onUpload: () -> Unit) {
                         Text("Upload Dokumen")
                     }
                 }
+
                 "pending" -> {
                     Box(
                         modifier = Modifier
@@ -246,9 +621,14 @@ fun DocumentCard(doc: DocumentItem, onUpload: () -> Unit) {
                             .background(CustomWarning.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
                             .padding(12.dp)
                     ) {
-                        Text("Menunggu verifikasi admin", color = CustomWarning, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Menunggu verifikasi admin",
+                            color = CustomWarning,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
+
                 "uploaded" -> {
                     Box(
                         modifier = Modifier
@@ -256,7 +636,11 @@ fun DocumentCard(doc: DocumentItem, onUpload: () -> Unit) {
                             .background(CustomSuccess.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
                             .padding(12.dp)
                     ) {
-                        Text("Dokumen terverifikasi", color = CustomSuccess, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Dokumen terverifikasi",
+                            color = CustomSuccess,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }
@@ -264,4 +648,9 @@ fun DocumentCard(doc: DocumentItem, onUpload: () -> Unit) {
     }
 }
 
-data class DocumentItem(val id: String, val name: String, val status: String, val comment: String = "")
+data class DocumentItem(
+    val id: String,
+    val name: String,
+    val status: String,
+    val comment: String = ""
+)

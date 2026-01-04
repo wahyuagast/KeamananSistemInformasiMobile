@@ -33,25 +33,28 @@ class ProfileRepository {
         nim: String,
         degree: String,
         phoneNumber: String,
-        studyProgram: String,
+        studyProgramId: String, // Expecting ID as string
         year: String,
         fullname: String,
         imageFile: File?
     ): Resource<com.wahyuagast.keamanansisteminformasimobile.data.model.UpdateProfileResponse> {
         return try {
-            // FIX: Use the toRequestBody extension function for creating RequestBody parts
-            val emailPart = email.toRequestBody("multipart/form-data".toMediaTypeOrNull())
-            val usernamePart = username.toRequestBody("multipart/form-data".toMediaTypeOrNull())
-            val nimPart = nim.toRequestBody("multipart/form-data".toMediaTypeOrNull())
-            val degreePart = degree.toRequestBody("multipart/form-data".toMediaTypeOrNull())
-            val phonePart = phoneNumber.toRequestBody("multipart/form-data".toMediaTypeOrNull())
-            val studyPart = studyProgram.toRequestBody("multipart/form-data".toMediaTypeOrNull())
-            val yearPart = year.toRequestBody("multipart/form-data".toMediaTypeOrNull())
-            val fullnamePart = fullname.toRequestBody("multipart/form-data".toMediaTypeOrNull())
+            val mediaType = "multipart/form-data".toMediaTypeOrNull()
+            
+            // Allow empty strings if user cleared them, assuming API handles or ignores
+            val emailPart = if (email.isNotEmpty()) email.toRequestBody(mediaType) else null
+            val usernamePart = if (username.isNotEmpty()) username.toRequestBody(mediaType) else null
+            val nimPart = if (nim.isNotEmpty()) nim.toRequestBody(mediaType) else null
+            val degreePart = if (degree.isNotEmpty()) degree.toRequestBody(mediaType) else null
+            val phonePart = if (phoneNumber.isNotEmpty()) phoneNumber.toRequestBody(mediaType) else null
+             // Ensure this is properly sent as the key 'studyProgramId'
+            val studyPart = if (studyProgramId.isNotEmpty()) studyProgramId.toRequestBody(mediaType) else null
+            val yearPart = if (year.isNotEmpty()) year.toRequestBody(mediaType) else null
+            val fullnamePart = if (fullname.isNotEmpty()) fullname.toRequestBody(mediaType) else null
 
             val imagePart = if (imageFile != null) {
-                // FIX: Use the toMediaTypeOrNull() extension function
                 val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
+                // Key 'ppImg' matches screenshot
                 okhttp3.MultipartBody.Part.createFormData("ppImg", imageFile.name, requestFile)
             } else null
 

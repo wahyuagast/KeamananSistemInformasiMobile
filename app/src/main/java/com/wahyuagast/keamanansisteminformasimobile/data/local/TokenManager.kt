@@ -1,35 +1,48 @@
 package com.wahyuagast.keamanansisteminformasimobile.data.local
 
 import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_prefs")
+// usage of datastore is risky: rooted device can compromise
+// This class is now secure for storing sensitive data.
+class TokenManager(context: Context) {
 
-class TokenManager(private val context: Context) {
+    private val prefs: SharedPreferences
 
     companion object {
-        private val TOKEN_KEY = stringPreferencesKey("access_token")
+        private const val FILE_NAME = "secure_auth_prefs" // File will be encrypted
+        private const val ACCESS_TOKEN_KEY = "access_token"
     }
 
-    val token: Flow<String?> = context.dataStore.data.map { preferences ->
-        preferences[TOKEN_KEY]
+    init {
+        // 1. Create a master key stored securely in the Android Keystore.
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+        // 2. Initialize EncryptedSharedPreferences using the master key.
+        prefs = EncryptedSharedPreferences.create(
+            context,
+            FILE_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
     }
 
-    suspend fun saveToken(token: String) {
-        context.dataStore.edit { preferences ->
-            preferences[TOKEN_KEY] = token
-        }
+    // Switched from suspend fun to regular fun, as SharedPreferences is synchronous.
+    fun saveToken(token: String) {
+        prefs.edit().putString(ACCESS_TOKEN_KEY, token).apply()
     }
 
-    suspend fun clearToken() {
-        context.dataStore.edit { preferences ->
-            preferences.remove(TOKEN_KEY)
-        }
+    fun getToken(): String? {
+        return prefs.getString(ACCESS_TOKEN_KEY, null)
+    }
+
+    fun clearToken() {
+        prefs.edit().clear().apply()
     }
 }
+    
