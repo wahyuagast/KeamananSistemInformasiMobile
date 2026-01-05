@@ -22,6 +22,7 @@ import com.wahyuagast.keamanansisteminformasimobile.ui.components.CustomTextFiel
 import com.wahyuagast.keamanansisteminformasimobile.ui.components.PrimaryButton
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
+import com.wahyuagast.keamanansisteminformasimobile.ui.utils.ValidationUtils
 import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.LoginViewModel
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
@@ -41,7 +42,6 @@ fun LoginScreen(
     LaunchedEffect(loginState) {
         when (val state = loginState) {
             is Resource.Success -> {
-                // Determine role or just pass user
                 state.data.user?.let { onLoginSuccess(it) }
                 viewModel.resetState()
             }
@@ -61,7 +61,6 @@ fun LoginScreen(
         }
     }
 
-    // Show toast for general error if it's not a field error
     LaunchedEffect(generalError) {
         if (generalError != null && emailError == null && passwordError == null) {
             Toast.makeText(context, generalError, Toast.LENGTH_SHORT).show()
@@ -76,7 +75,6 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Logo Section
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -94,7 +92,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "Sistem Informasi dan Monitoring PKL",
+            text = "SIMOPKL",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
@@ -108,7 +106,6 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Form
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -146,16 +143,20 @@ fun LoginScreen(
             PrimaryButton(
                 text = "Masuk",
                 onClick = {
-                    // basic client-side validation
                     var ok = true
-                    if (viewModel.email.isBlank()) {
+                    if (ValidationUtils.isFieldEmpty(viewModel.email)) {
                         emailError = "Email tidak boleh kosong"
                         ok = false
+                    } else if (!ValidationUtils.isEmailValid(viewModel.email)) {
+                        emailError = "Format email tidak valid"
+                        ok = false
                     }
-                    if (viewModel.password.isBlank()) {
+
+                    if (ValidationUtils.isFieldEmpty(viewModel.password)) {
                         passwordError = "Password tidak boleh kosong"
                         ok = false
                     }
+                    
                     if (ok) viewModel.login()
                 }
             )

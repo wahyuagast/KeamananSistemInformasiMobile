@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.wahyuagast.keamanansisteminformasimobile.data.local.TokenManager
 import com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterRequest
-import com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterResponse
+import com.wahyuagast.keamanansisteminformasimobile.data.model.AuthRegisterResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.repository.AuthRepository
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.coroutines.launch
@@ -16,7 +16,8 @@ import androidx.compose.runtime.setValue
 class RegisterViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AuthRepository(TokenManager(application))
 
-    var registerState by mutableStateOf<Resource<RegisterResponse>?>(null)
+    // Keep a concrete typed state so UI can access fields like `message` without casts
+    var registerState by mutableStateOf<Resource<AuthRegisterResponse>?>(null)
         private set
 
     var email by mutableStateOf("")
@@ -67,10 +68,10 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
                 year = year.trim()
             )
             val result = repository.register(req)
+            // assign typed Resource<AuthRegisterResponse>
             registerState = result
         }
     }
 
     fun resetState() { registerState = null }
 }
-

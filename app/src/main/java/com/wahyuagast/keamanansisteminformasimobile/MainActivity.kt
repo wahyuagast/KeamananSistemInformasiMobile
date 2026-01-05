@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.LoginScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.RegisterScreen
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.*
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin.*
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.KeamananSistemInformasiMobileTheme
@@ -42,6 +43,24 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("dashboard_mahasiswa") {
                                         popUpTo("login") { inclusive = true }
                                     }
+                                }
+                            },
+                            onNavigateToRegister = {
+                                navController.navigate("register")
+                            }
+                        )
+                    }
+
+                    composable("register") {
+                        RegisterScreen(
+                            onRegisterSuccess = {
+                                navController.navigate("login") {
+                                    popUpTo("register") { inclusive = true }
+                                }
+                            },
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo("register") { inclusive = true }
                                 }
                             }
                         )

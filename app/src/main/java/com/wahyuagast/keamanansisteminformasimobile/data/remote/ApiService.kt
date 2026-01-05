@@ -16,7 +16,7 @@ interface ApiService {
 
     // Register endpoint
     @POST("register")
-    suspend fun register(@Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterRequest): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterResponse>
+    suspend fun register(@Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterRequest): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.AuthRegisterResponse>
 
     @GET("profile")
     suspend fun getProfile(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.ProfileResponse>
@@ -40,6 +40,9 @@ interface ApiService {
 
     @GET("registation")
     suspend fun getRegistrationStatus(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationStatusResponse>
+
+    @GET("periods")
+    suspend fun getPeriods(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.PeriodeResponse>
 
     @POST("registation/form")
     suspend fun submitRegistrationForm(@Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormRequest): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormResponse>

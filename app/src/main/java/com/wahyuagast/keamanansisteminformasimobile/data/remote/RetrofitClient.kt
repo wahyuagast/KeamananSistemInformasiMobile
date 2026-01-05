@@ -42,7 +42,21 @@ object RetrofitClient {
     private val okHttpClient by lazy {
         OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
-            // debug interceptor: logs URL and masked Authorization header
+            .addInterceptor { chain ->
+                // Add app headers (always)
+                val req = chain.request().newBuilder()
+                    .header("User-Agent", "SIMOPKL-Android/1.0")
+                    .header("X-App-Platform", "android")
+                    .header("X-App-Version", "1.0.0")
+                    .header("X-Device-Id", deviceId ?: "unknown")
+                    .build()
+                chain.proceed(req)
+            }
+            .addInterceptor { chain ->
+                val tm = tokenManager
+                AuthInterceptor(tm).intercept(chain)
+            }
+            // debug interceptor: logs URL and masked Authorization header (Moved to end to capture headers added by previous interceptors)
             .addInterceptor { chain ->
                 val req = chain.request()
                 val authHeader = req.header("Authorization")
@@ -50,17 +64,10 @@ object RetrofitClient {
                 Log.d("RetrofitClient", "Request: ${req.url} Authorization=$masked")
                 chain.proceed(req)
             }
-            .addInterceptor { chain ->
-                // Add app headers (always)
-                val req = chain.request().newBuilder().header("User-Agent", "SIMOPKL-Android/1.0")
-                    .header("X-App-Platform", "android").header("X-App-Version", "1.0.0")
-                    .header("X-Device-Id", deviceId ?: "unknown").build()
-                chain.proceed(req)
-            }.addInterceptor { chain ->
-                val tm = tokenManager
-                AuthInterceptor(tm).intercept(chain)
-            }.connectTimeout(30, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS).build()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
     }
 
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)

@@ -5,6 +5,7 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormR
 import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationStatusResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
+import retrofit2.Response
 
 class RegistrationRepository {
     private val api = RetrofitClient.apiService
@@ -14,6 +15,40 @@ class RegistrationRepository {
             val resp = api.getRegistrationStatus()
             if (resp.isSuccessful && resp.body() != null) {
                 Resource.Success(resp.body()!!)
+            } else if (resp.code() == 404) {
+                // Determine if 404 means "Not Registered". Try to fetch resources manually.
+                android.util.Log.w("RegRepo", "Status 404, attempting to fetch resources manually")
+                
+                // Fetch Mitras
+                val mitrasResp = api.getMitras()
+                val mitrasList = if (mitrasResp.isSuccessful) mitrasResp.body()?.mitra ?: emptyList() else emptyList()
+
+                // Fetch Periods (Guessing endpoint)
+                val periodsResp = try { api.getPeriods() } catch(e: Exception) { null }
+                val periodsList = if (periodsResp?.isSuccessful == true) periodsResp.body()?.periods ?: emptyList() else emptyList()
+
+                // Return "Not Registered" state with available resources
+                Resource.Success(RegistrationStatusResponse(
+                    statusRegistrasi = "belum_terdaftar",
+                    mitras = mitrasList.map { 
+                        // Map Mitra (from MitraResponse) to MitraDto (for RegistrationStatusResponse)
+                        com.wahyuagast.keamanansisteminformasimobile.data.model.MitraDto(
+                            id = it.id,
+                            partnerName = it.partnerName,
+                            address = it.address,
+                            description = it.description,
+                            email = it.email,
+                            phoneNumber = it.phoneNumber,
+                            websiteAddress = it.websiteAddress,
+                            imageUrl = it.imageUrl,
+                            status = it.status,
+                            type = it.type,
+                            whatsappNumber = it.whatsappNumber
+                        )
+                    },
+                    periods = periodsList,
+                    message = "Silahkan lakukan pendaftaran"
+                ))
             } else {
                 Resource.Error(resp.message())
             }
@@ -22,12 +57,15 @@ class RegistrationRepository {
         }
     }
 
-    suspend fun submitRegistrationForm(mitraId: String, periodeId: String, startDate: String, endDate: String): Resource<RegistrationFormResponse> {
+    suspend fun submitRegistrationForm(
+        fullname: String, nim: String, email: String,
+        mitraId: String, periodeId: String, startDate: String, endDate: String
+    ): Resource<RegistrationFormResponse> {
         return try {
             val request = RegistrationFormRequest(
-                fullname = "",
-                nim = "",
-                email = "",
+                fullname = fullname,
+                nim = nim,
+                email = email,
                 mitraId = mitraId,
                 periodeId = periodeId,
                 startDate = startDate,
@@ -37,7 +75,18 @@ class RegistrationRepository {
             if (resp.isSuccessful && resp.body() != null) {
                 Resource.Success(resp.body()!!)
             } else {
-                Resource.Error(resp.message())
+                val errorBody = resp.errorBody()?.string()
+                android.util.Log.e("RegRepo", "Submit failed: code=${resp.code()}, error=$errorBody")
+                val errorMessage = try {
+                    if (errorBody != null) {
+                        org.json.JSONObject(errorBody).getString("message")
+                    } else {
+                        resp.message()
+                    }
+                } catch (e: Exception) {
+                    errorBody ?: resp.message()
+                }
+                Resource.Error(errorMessage)
             }
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Unknown error")

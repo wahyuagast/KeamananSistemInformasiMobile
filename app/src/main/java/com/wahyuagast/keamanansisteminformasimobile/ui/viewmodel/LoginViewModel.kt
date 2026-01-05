@@ -36,8 +36,11 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             val result = repository.login(email, password)
             if (result is Resource.Success) {
                 result.data.token?.let { token ->
+                    android.util.Log.d("LoginViewModel", "Login success, saving token...")
                     repository.saveToken(token)
-                }
+                } ?: android.util.Log.w("LoginViewModel", "Login success but token is null")
+            } else if (result is Resource.Error) {
+                android.util.Log.e("LoginViewModel", "Login failed: ${result.message}")
             }
             loginState = result
         }

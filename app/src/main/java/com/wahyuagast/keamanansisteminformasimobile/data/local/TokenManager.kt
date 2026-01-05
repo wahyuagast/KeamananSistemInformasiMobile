@@ -34,11 +34,18 @@ class TokenManager(context: Context) {
 
     // Switched from suspend fun to regular fun, as SharedPreferences is synchronous.
     fun saveToken(token: String) {
+        android.util.Log.d("TokenManager", "Saving token: ${token.take(10)}...")
         prefs.edit().putString(ACCESS_TOKEN_KEY, token).apply()
     }
 
     fun getToken(): String? {
-        return prefs.getString(ACCESS_TOKEN_KEY, null)
+        val token = prefs.getString(ACCESS_TOKEN_KEY, null)
+        if (token == null) {
+            android.util.Log.w("TokenManager", "getToken: null")
+        } else {
+            // android.util.Log.d("TokenManager", "getToken: found") // verbose
+        }
+        return token
     }
 
     fun clearToken() {

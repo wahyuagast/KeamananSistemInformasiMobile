@@ -1,15 +1,13 @@
 package com.wahyuagast.keamanansisteminformasimobile.data.repository
 
+import com.wahyuagast.keamanansisteminformasimobile.data.local.TokenManager
+import com.wahyuagast.keamanansisteminformasimobile.data.model.AuthRegisterResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.model.LoginRequest
 import com.wahyuagast.keamanansisteminformasimobile.data.model.LoginResponse
+import com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterRequest
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.decodeFromString
-
-import com.wahyuagast.keamanansisteminformasimobile.data.local.TokenManager
-import com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterRequest
-import com.wahyuagast.keamanansisteminformasimobile.data.model.AuthRegisterResponse
 
 class AuthRepository(private val tokenManager: TokenManager) {
     private val apiService = RetrofitClient.apiService
@@ -44,7 +42,7 @@ class AuthRepository(private val tokenManager: TokenManager) {
                     // Check if body status is false but 200 OK (logic from prompt: "or (no email address recorded): { status: false ... }")
                     val body = response.body()
                     if (body != null && !body.status) {
-                         Resource.Error(body.message ?: "Login failed")
+                        Resource.Error(body.message ?: "Login failed")
                     } else {
                         Resource.Error(response.message())
                     }

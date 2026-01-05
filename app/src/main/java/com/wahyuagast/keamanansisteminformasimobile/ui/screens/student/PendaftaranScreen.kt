@@ -29,6 +29,7 @@ fun PendaftaranScreen(
     viewModel: MahasiswaProfileViewModel = viewModel()
 ) {
     LaunchedEffect(Unit) {
+        viewModel.loadProfile()
         viewModel.loadRegistrationStatus()
     }
     val regState = viewModel.registrationState
@@ -109,7 +110,7 @@ fun PendaftaranScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             val statusText =
-                                data.status.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                                data.statusRegistrasi.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
                             Text(
                                 text = "Status: $statusText",
                                 color = CustomBlack,
@@ -301,10 +302,16 @@ fun PendaftaranScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    val isFormEnabled = if (regState is Resource.Success) {
+                        !regState.data.statusRegistrasi.equals("diterima", ignoreCase = true)
+                    } else {
+                        true
+                    }
+
                     // Mitra Dropdown
                     ExposedDropdownMenuBox(
                         expanded = showMitraDropdown,
-                        onExpandedChange = { showMitraDropdown = !showMitraDropdown }
+                        onExpandedChange = { if (isFormEnabled) showMitraDropdown = !showMitraDropdown }
                     ) {
                         OutlinedTextField(
                             value = selectedMitra?.partnerName ?: "",
@@ -315,9 +322,14 @@ fun PendaftaranScreen(
                             modifier = Modifier
                                 .menuAnchor()
                                 .fillMaxWidth(),
+                            enabled = isFormEnabled,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = CustomPrimary,
-                                focusedLabelColor = CustomPrimary
+                                focusedLabelColor = CustomPrimary,
+                                disabledTextColor = CustomBlack,
+                                disabledBorderColor = CustomGray,
+                                disabledLabelColor = CustomGray,
+                                disabledTrailingIconColor = CustomGray
                             )
                         )
                         ExposedDropdownMenu(
@@ -343,7 +355,7 @@ fun PendaftaranScreen(
                     // Periode Dropdown
                     ExposedDropdownMenuBox(
                         expanded = showPeriodeDropdown,
-                        onExpandedChange = { showPeriodeDropdown = !showPeriodeDropdown }
+                        onExpandedChange = { if (isFormEnabled) showPeriodeDropdown = !showPeriodeDropdown }
                     ) {
                         val selectedPeriodeName = if (regState is Resource.Success) {
                             regState.data.periods.find { it.id.toString() == selectedPeriode }?.name
@@ -359,9 +371,14 @@ fun PendaftaranScreen(
                             modifier = Modifier
                                 .menuAnchor()
                                 .fillMaxWidth(),
+                            enabled = isFormEnabled,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = CustomPrimary,
-                                focusedLabelColor = CustomPrimary
+                                focusedLabelColor = CustomPrimary,
+                                disabledTextColor = CustomBlack,
+                                disabledBorderColor = CustomGray,
+                                disabledLabelColor = CustomGray,
+                                disabledTrailingIconColor = CustomGray
                             )
                         )
                         ExposedDropdownMenu(
@@ -397,17 +414,17 @@ fun PendaftaranScreen(
                             Icon(
                                 Icons.Default.DateRange,
                                 null,
-                                modifier = Modifier.clickable { showStartDatePicker = true })
+                                modifier = Modifier.clickable(enabled = isFormEnabled) { showStartDatePicker = true })
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showStartDatePicker = true },
+                            .clickable(enabled = isFormEnabled) { showStartDatePicker = true },
                         enabled = false, // Disable text input, rely on click
                         colors = OutlinedTextFieldDefaults.colors(
                             disabledTextColor = CustomBlack,
                             disabledBorderColor = CustomGray,
                             disabledLabelColor = CustomGray,
-                            disabledTrailingIconColor = CustomPrimary
+                            disabledTrailingIconColor = if(isFormEnabled) CustomPrimary else CustomGray
                         )
                     )
                     if (showStartDatePicker) {
@@ -448,17 +465,17 @@ fun PendaftaranScreen(
                             Icon(
                                 Icons.Default.DateRange,
                                 null,
-                                modifier = Modifier.clickable { showEndDatePicker = true })
+                                modifier = Modifier.clickable(enabled = isFormEnabled) { showEndDatePicker = true })
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showEndDatePicker = true },
+                            .clickable(enabled = isFormEnabled) { showEndDatePicker = true },
                         enabled = false,
                         colors = OutlinedTextFieldDefaults.colors(
                             disabledTextColor = CustomBlack,
                             disabledBorderColor = CustomGray,
                             disabledLabelColor = CustomGray,
-                            disabledTrailingIconColor = CustomPrimary
+                            disabledTrailingIconColor = if(isFormEnabled) CustomPrimary else CustomGray
                         )
                     )
                     if (showEndDatePicker) {
@@ -513,8 +530,11 @@ fun PendaftaranScreen(
                             .fillMaxWidth()
                             .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        enabled = formState !is Resource.Loading,
-                        colors = ButtonDefaults.buttonColors(containerColor = CustomPrimary)
+                        enabled = isFormEnabled && formState !is Resource.Loading,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = CustomPrimary,
+                            disabledContainerColor = CustomGray
+                        )
                     ) {
                         if (formState is Resource.Loading) {
                             CircularProgressIndicator(

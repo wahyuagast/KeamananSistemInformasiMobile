@@ -60,7 +60,11 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
     fun loadRegistrationStatus() {
         viewModelScope.launch {
             registrationState = Resource.Loading
-            registrationState = registrationRepository.getRegistrationStatus()
+            val result = registrationRepository.getRegistrationStatus()
+            if (result is Resource.Error) {
+                android.util.Log.e("MahasiswaProfileVM", "Error loading registration: ${result.message}")
+            }
+            registrationState = result
         }
     }
     
@@ -103,7 +107,17 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
 
         viewModelScope.launch {
             formSubmissionState = Resource.Loading
-            formSubmissionState = registrationRepository.submitRegistrationForm(mitraId, periodeId, startDate, endDate)
+            // Get user details from profile state
+            val currentState = profileState
+            val profile = if (currentState is Resource.Success) currentState.data else null
+            val userProfile = profile?.user
+            val awardee = userProfile?.awardee
+            
+            val fullname = awardee?.fullname ?: ""
+            val nim = awardee?.nim ?: ""
+            val email = userProfile?.email ?: ""
+
+            formSubmissionState = registrationRepository.submitRegistrationForm(fullname, nim, email, mitraId, periodeId, startDate, endDate)
             if (formSubmissionState is Resource.Success) {
                  loadRegistrationStatus() // Refresh status after successful submission
             }

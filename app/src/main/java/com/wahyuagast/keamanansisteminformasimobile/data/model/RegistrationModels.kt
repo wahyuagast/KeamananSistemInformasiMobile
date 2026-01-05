@@ -32,6 +32,12 @@ data class PeriodeDto(
 )
 
 @Serializable
+data class PeriodeResponse(
+    val periods: List<PeriodeDto> = emptyList(),
+    val message: String? = null
+)
+
+@Serializable
 data class AwardeeNestedDto(
     val id: Int,
     @SerialName("created_at") val createdAt: String? = null,
@@ -87,11 +93,12 @@ data class RegisterResponse(
 // Registration status response used by PendaftaranScreen
 @Serializable
 data class RegistrationStatusResponse(
-    val status: String = "",
+    @SerialName("status_registrasi") val statusRegistrasi: String = "",
     val progress: Int = 0,
     val message: String? = null,
     val mitras: List<MitraDto> = emptyList(),
-    val periods: List<PeriodeDto> = emptyList()
+    val periods: List<PeriodeDto> = emptyList(),
+    val documents: List<DocumentDto> = emptyList()
 )
 
 // Keep older placeholder form models (minimal)
