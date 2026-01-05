@@ -8,6 +8,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.decodeFromString
 
 import com.wahyuagast.keamanansisteminformasimobile.data.local.TokenManager
+import com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterRequest
+import com.wahyuagast.keamanansisteminformasimobile.data.model.AuthRegisterResponse
 
 class AuthRepository(private val tokenManager: TokenManager) {
     private val apiService = RetrofitClient.apiService
@@ -50,6 +52,30 @@ class AuthRepository(private val tokenManager: TokenManager) {
             }
         } catch (e: Exception) {
             Resource.Error(e.message ?: "An unknown error occurred")
+        }
+    }
+
+    // Register method
+    suspend fun register(request: RegisterRequest): Resource<AuthRegisterResponse> {
+        return try {
+            val resp = apiService.register(request)
+            if (resp.isSuccessful && resp.body() != null) {
+                Resource.Success(resp.body()!!)
+            } else {
+                val err = resp.errorBody()?.string()
+                if (err != null) {
+                    try {
+                        val parsed = json.decodeFromString<AuthRegisterResponse>(err)
+                        Resource.Error(parsed.message ?: resp.message())
+                    } catch (e: Exception) {
+                        Resource.Error(resp.message())
+                    }
+                } else {
+                    Resource.Error(resp.message())
+                }
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Unknown error")
         }
     }
 

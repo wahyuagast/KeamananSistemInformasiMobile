@@ -28,7 +28,8 @@ import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
-    onLoginSuccess: (User) -> Unit
+    onLoginSuccess: (User) -> Unit,
+    onNavigateToRegister: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val loginState = viewModel.loginState
@@ -93,7 +94,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "Sistem PKL",
+            text = "Sistem Informasi dan Monitoring PKL",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
@@ -144,16 +145,28 @@ fun LoginScreen(
         } else {
             PrimaryButton(
                 text = "Masuk",
-                onClick = { viewModel.login() }
+                onClick = {
+                    // basic client-side validation
+                    var ok = true
+                    if (viewModel.email.isBlank()) {
+                        emailError = "Email tidak boleh kosong"
+                        ok = false
+                    }
+                    if (viewModel.password.isBlank()) {
+                        passwordError = "Password tidak boleh kosong"
+                        ok = false
+                    }
+                    if (ok) viewModel.login()
+                }
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Lupa Password?",
+            text = "Buat akun",
             color = CustomPrimary,
-            modifier = Modifier.clickable { },
+            modifier = Modifier.clickable { onNavigateToRegister() },
             style = MaterialTheme.typography.bodyMedium
         )
     }

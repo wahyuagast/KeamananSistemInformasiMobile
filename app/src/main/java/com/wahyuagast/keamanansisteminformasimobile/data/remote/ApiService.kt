@@ -14,6 +14,10 @@ interface ApiService {
     @POST("login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
+    // Register endpoint
+    @POST("register")
+    suspend fun register(@Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterRequest): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterResponse>
+
     @GET("profile")
     suspend fun getProfile(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.ProfileResponse>
 
