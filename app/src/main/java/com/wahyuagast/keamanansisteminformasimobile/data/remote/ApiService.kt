@@ -53,6 +53,13 @@ interface ApiService {
     @POST("document_store")
     suspend fun submitDocumentRequest(@Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreRequest): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse>
 
+    @Multipart
+    @POST("documents/regis")
+    suspend fun uploadRegistrationDocument(
+        @Part file: okhttp3.MultipartBody.Part,
+        @Part("document_type_id") documentTypeId: okhttp3.RequestBody
+    ): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse>
+
     // Admin: fetch awardees (students)
     @GET("admin/awardee")
     suspend fun getAwardees(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.AwardeeResponse>
@@ -86,4 +93,31 @@ interface ApiService {
 
     @POST("admin/awardee/register/reject/{id}")
     suspend fun rejectAwardeeRegister(@Path("id") id: Int): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterResponse>
+
+    @GET("implementation")
+    suspend fun getImplementation(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.ImplementationResponse>
+
+    @GET("exam/draft")
+    suspend fun getExamDraft(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.ExamDraftResponse>
+
+    @GET("exam/final")
+    suspend fun getExamFinal(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.ExamFinalResponse>
+
+    @GET("monev")
+    suspend fun getMonev(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.MonevResponse>
+
+    @GET("documents")
+    suspend fun getDocuments(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentListResponse>
+
+    // Note: submitDocumentRequest was already in the file at line 53, but I will ensure it is correct and not duplicated.
+    // It seems I missed it in my previous read or it was there. Let's double check line 53 of ApiService.
+    // Line 53: @POST("document_store") submitDocumentRequest...
+    // The user request says `/documents/store`. 
+    // I should check if "document_store" is correct or if it should be "documents/store".
+    // User prompt said: "The store endpoint: POST /documents/store"
+    // I will update the existing one or add a new one if different.
+    // Let's assume the user is correct about `/documents/store`.
+    
+    @POST("documents/store")
+    suspend fun storeDocument(@Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreRequest): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse>
 }

@@ -10,6 +10,7 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterDto
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 class DocumentRepository {
     private val apiService = RetrofitClient.apiService
@@ -89,6 +90,35 @@ class DocumentRepository {
              }
         } catch (_: Exception) {
             Resource.Error("An unknown error occurred")
+        }
+    }
+
+    suspend fun uploadDocument(file: java.io.File, documentTypeId: Int): Resource<DocumentStoreResponse> {
+        return try {
+            val requestFile = okhttp3.RequestBody.create("application/pdf".toMediaTypeOrNull(), file)
+            val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
+            val typeIdBody = okhttp3.RequestBody.create("text/plain".toMediaTypeOrNull(), documentTypeId.toString())
+
+            val response = apiService.uploadRegistrationDocument(body, typeIdBody)
+            
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!)
+            } else {
+                 val errorBody = response.errorBody()?.string()
+                 val parsedError = try {
+                     if (errorBody != null) {
+                        val json = Json { ignoreUnknownKeys = true }
+                        json.decodeFromString<DocumentStoreResponse>(errorBody)
+                     } else null
+                 } catch (_: Exception) {
+                     null
+                 }
+
+                 val errorMessage = parsedError?.message ?: response.message()
+                 Resource.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Unknown error")
         }
     }
 

@@ -30,7 +30,7 @@ data class DocumentStoreResponse(
 @Serializable
 data class DocumentDto(
     val id: Int,
-    @SerialName("user_id") val userId: Int,
+    @SerialName("user_id") val userId: Int? = null,
     @SerialName("document_type_id") val documentTypeId: Int,
     val name: String? = null,
     val description: String? = null,
@@ -49,4 +49,9 @@ data class AdminDocumentsResponse(
 @Serializable
 data class AdminActionRequest(
     @SerialName("admin_comment") val adminComment: String? = null
+)
+
+@Serializable
+data class DocumentListResponse(
+    val documents: List<DocumentDto> = emptyList()
 )

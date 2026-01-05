@@ -18,25 +18,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
 @Composable
-fun UjianScreen(onBack: () -> Unit) {
+fun UjianScreen(
+    onBack: () -> Unit,
+    viewModel: com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.ExamViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
     var activeTab by remember { mutableStateOf("draft") }
 
-    val draftDocs = listOf(
-        DocumentItem("jurnal", "Draft Jurnal Jupita", "uploaded"),
-        DocumentItem("laporan", "Draft Laporan Pengabdian", "pending"),
-        DocumentItem("berita-acara", "Permohonan Berita Acara", "empty")
-    )
-    
-    val finalDocs = listOf(
-        DocumentItem("revisi", "Form Revisi Penguji", "empty"),
-        DocumentItem("nilai", "Nilai Ujian PKL", "empty"),
-        DocumentItem("jurnal-final", "Jurnal Final", "empty"),
-        DocumentItem("laporan-final", "Laporan Akhir", "empty")
-    )
+    LaunchedEffect(Unit) {
+        viewModel.loadDraft()
+        viewModel.loadFinal()
+    }
 
-    val docs = if (activeTab == "draft") draftDocs else finalDocs
+    val draftState = viewModel.draftState
+    val finalState = viewModel.finalState
+
     val primaryColor = if (activeTab == "draft") CustomPurple else CustomSuccess
 
     Column(
@@ -72,69 +70,111 @@ fun UjianScreen(onBack: () -> Unit) {
                 }
             }
 
-            // Status Info
-            Card(
-                colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.1f)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.2f)),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    val title = if (activeTab == "draft") "Status: Persiapan Ujian" else "Ujian Selesai"
-                    val desc = if (activeTab == "draft") "Upload semua berkas draft untuk mengajukan ujian PKL" else "Upload berkas final dan revisi dari penguji"
+            if (activeTab == "draft") {
+                if (draftState is Resource.Loading) {
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CustomPurple) }
+                } else if (draftState is Resource.Success) {
+                    val data = draftState.data
+                     // Mapping draft data
+                    val draftDocs = listOf(
+                        DocumentItem("jurnal", "Draft Jurnal Jupita", data.draftJurnalJupita?.status ?: "empty", data.draftJurnalJupita?.comment ?: "Belum ada data"),
+                        DocumentItem("laporan", "Draft Laporan Pengabdian", data.draftLaporanPengabdian?.status ?: "empty", data.draftLaporanPengabdian?.comment ?: "Belum ada data"),
+                        DocumentItem("berita-acara", "Permohonan Berita Acara", data.permohonanBeritaAcara?.status ?: "empty", data.permohonanBeritaAcara?.comment ?: "Belum ada data")
+                    )
                     
-                    Text(text = title, color = CustomBlack, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                    Text(text = desc, color = CustomGray, style = MaterialTheme.typography.bodySmall)
+                    StatusCard(activeTab, primaryColor)
                     
-                    if (activeTab == "final") {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Download, null, tint = CustomPrimary, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Unduh Berita Acara Ujian", color = CustomPrimary, style = MaterialTheme.typography.bodySmall)
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        draftDocs.forEach { doc -> UjianDocCard(doc, primaryColor) }
+                    }
+                } else if (draftState is Resource.Error) {
+                     Text("Error loading draft: ${draftState.message}", color = CustomDanger)
+                }
+            } else {
+                if (finalState is Resource.Loading) {
+                     Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CustomSuccess) }
+                } else if (finalState is Resource.Success) {
+                    val data = finalState.data
+                    val finalDocs = listOf(
+                        DocumentItem("revisi", "Form Revisi Penguji", data.formRevisiPenguji?.status ?: "empty", data.formRevisiPenguji?.comment ?: "Belum ada data"),
+                        DocumentItem("nilai", "Nilai Ujian PKL", data.nilaiUjianPkl?.status ?: "empty", data.nilaiUjianPkl?.comment ?: "Belum ada data"),
+                        DocumentItem("jurnal-final", "Jurnal Final", data.jurnalFinal?.status ?: "empty", data.jurnalFinal?.comment ?: "Belum ada data"),
+                        DocumentItem("laporan-final", "Laporan Akhir", data.laporanAkhir?.status ?: "empty", data.laporanAkhir?.comment ?: "Belum ada data")
+                    )
+
+                    StatusCard(activeTab, primaryColor)
+
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        finalDocs.forEach { doc -> UjianDocCard(doc, primaryColor) }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Nilai Akhir PKL", color = CustomBlack, style = MaterialTheme.typography.bodyMedium)
+                            
+                            val nilaiAkhir = data.nilaiAkhir ?: "Belum ada data"
+                            val nilaiHuruf = data.nilaiHuruf ?: "-"
+                                
+                            if (data.nilaiAkhir != null) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Box(
+                                    modifier = Modifier.size(80.dp).background(CustomSuccess, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(nilaiHuruf, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Nilai Akhir: $nilaiAkhir", color = CustomGray, style = MaterialTheme.typography.bodySmall)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = {},
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = CustomPrimary),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.Download, null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Unduh Nilai Akhir")
+                                }
+                            } else {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Nilai belum keluar", color = CustomGray, style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
+                } else if (finalState is Resource.Error) {
+                    Text("Error loading final: ${finalState.message}", color = CustomDanger)
                 }
             }
+        }
+    }
+}
 
-            // Documents
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                docs.forEach { doc ->
-                    UjianDocCard(doc, primaryColor)
-                }
-            }
-
+@Composable
+fun StatusCard(activeTab: String, primaryColor: Color) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.1f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.2f)),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            val title = if (activeTab == "draft") "Status: Persiapan Ujian" else "Ujian Selesai"
+            val desc = if (activeTab == "draft") "Upload semua berkas draft untuk mengajukan ujian PKL" else "Upload berkas final dan revisi dari penguji"
+            
+            Text(text = title, color = CustomBlack, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(text = desc, color = CustomGray, style = MaterialTheme.typography.bodySmall)
+            
             if (activeTab == "final") {
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Nilai Akhir PKL", color = CustomBlack, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Box(
-                            modifier = Modifier.size(80.dp).background(CustomSuccess, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("A", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Sangat Baik", color = CustomGray, style = MaterialTheme.typography.bodySmall)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = {},
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = CustomPrimary),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(Icons.Default.Download, null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Unduh Nilai Akhir")
-                        }
-                    }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Download, null, tint = CustomPrimary, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Unduh Berita Acara Ujian", color = CustomPrimary, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
@@ -171,9 +211,9 @@ fun UjianDocCard(doc: DocumentItem, color: Color) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.Top) {
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -200,6 +240,18 @@ fun UjianDocCard(doc: DocumentItem, color: Color) {
                 }
             }
             
+            if (doc.comment.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(CustomBackground, RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                ) {
+                   Text(text = doc.comment, style = MaterialTheme.typography.bodySmall, color = CustomBlack)
+                }
+            }
+            
             Spacer(modifier = Modifier.height(12.dp))
             
             when (doc.status) {
@@ -213,16 +265,6 @@ fun UjianDocCard(doc: DocumentItem, color: Color) {
                         Icon(Icons.Default.Upload, null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Upload Dokumen")
-                    }
-                }
-                "pending" -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(CustomWarning.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                            .padding(12.dp)
-                    ) {
-                        Text("Menunggu verifikasi admin", color = CustomWarning, style = MaterialTheme.typography.bodySmall)
                     }
                 }
                 "uploaded" -> {

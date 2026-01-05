@@ -155,4 +155,61 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
             onLogoutSuccess()
         }
     }
+
+    var uploadDocumentState by mutableStateOf<Resource<com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse>>(Resource.Idle)
+        private set
+
+    fun uploadDocument(uri: android.net.Uri, documentTypeId: Int) {
+        viewModelScope.launch {
+            uploadDocumentState = Resource.Loading
+            try {
+                val context = getApplication<Application>()
+                val contentResolver = context.contentResolver
+                
+                // Validate MIME Type
+                val type = contentResolver.getType(uri)
+                if (type != "application/pdf") {
+                    uploadDocumentState = Resource.Error("File harus berformat PDF")
+                    return@launch
+                }
+
+                // Copy to temp file
+                val inputStream = contentResolver.openInputStream(uri)
+                if (inputStream != null) {
+                    val tempFile = File.createTempFile("upload", ".pdf", context.cacheDir)
+                    tempFile.outputStream().use { output ->
+                        inputStream.copyTo(output)
+                    }
+                    inputStream.close()
+                    
+                    // Validate Size (Max 2MB = 2 * 1024 * 1024 bytes)
+                    if (tempFile.length() > 2 * 1024 * 1024) {
+                        uploadDocumentState = Resource.Error("Ukuran file maksimal 2MB")
+                        tempFile.delete()
+                        return@launch
+                    }
+
+                    // Upload
+                    uploadDocumentState = documentRepository.uploadDocument(tempFile, documentTypeId)
+                    
+                    // Cleanup
+                    if (tempFile.exists()) tempFile.delete()
+                    
+                    // Refresh status on success
+                    if (uploadDocumentState is Resource.Success) {
+                        loadRegistrationStatus()
+                    }
+                } else {
+                    uploadDocumentState = Resource.Error("Gagal membaca file")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                uploadDocumentState = Resource.Error("Gagal memproses file: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun resetUploadState() {
+        uploadDocumentState = Resource.Idle
+    }
 }

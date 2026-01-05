@@ -55,15 +55,96 @@ fun PendaftaranScreen(
     var showEndDatePicker by remember { mutableStateOf(false) }
 
     // Mock Documents
-    var documents by remember {
-        mutableStateOf(
-            listOf(
-                DocumentItem("form2a", "Form 2A", "empty"),
-                DocumentItem("form2b", "Form 2B", "empty"),
-                DocumentItem("transkrip", "Transkrip Nilai", "empty"),
-                DocumentItem("suratTerima", "Surat Keterangan Diterima", "empty")
-            )
+    // Load Document Types
+    LaunchedEffect(Unit) {
+        viewModel.loadDocumentTypes()
+    }
+    val docTypesState = viewModel.documentTypesState
+    val uploadState = viewModel.uploadDocumentState
+
+    // File Picker & Confirmation
+    var activeTypeId by remember { mutableStateOf<Int?>(null) }
+    var pendingUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            pendingUri = it
+            showConfirmDialog = true
+        }
+    }
+
+    if (showConfirmDialog && pendingUri != null) {
+        val uri = pendingUri!!
+        // Get generic filename
+        var fileName = "Dokumen PDF"
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (nameIndex >= 0) {
+                    fileName = it.getString(nameIndex)
+                }
+            }
+        }
+
+        AlertDialog(
+            onDismissRequest = { 
+                showConfirmDialog = false 
+                pendingUri = null
+            },
+            title = { Text("Konfirmasi Upload") },
+            text = { Text("Apakah Anda yakin ingin mengupload file \"$fileName\"?") },
+            confirmButton = {
+                Button(onClick = {
+                    activeTypeId?.let { id ->
+                         viewModel.uploadDocument(uri, id)
+                    }
+                    showConfirmDialog = false
+                    pendingUri = null
+                }) {
+                    Text("Ya, Upload")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showConfirmDialog = false
+                    pendingUri = null
+                }) {
+                    Text("Batal")
+                }
+            }
         )
+    }
+
+    // Upload Feedback
+    LaunchedEffect(uploadState) {
+        if (uploadState is Resource.Success) {
+            android.widget.Toast.makeText(context, "Dokumen berhasil diupload", android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.resetUploadState()
+        } else if (uploadState is Resource.Error) {
+            android.widget.Toast.makeText(context, uploadState.message, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.resetUploadState()
+        }
+    }
+
+    // Combine Types and Status
+    val docItems = remember(docTypesState, regState) {
+        if (docTypesState is Resource.Success) {
+            val uploadedDocs = if (regState is Resource.Success) regState.data.documents else emptyList()
+            docTypesState.data.documentTypes.map { type ->
+                val uploaded = uploadedDocs.find { it.documentTypeId == type.id }
+                DocumentItem(
+                    id = type.id.toString(),
+                    name = type.name,
+                    status = if (uploaded != null) "uploaded" else "empty" // Simplified status logic
+                )
+            }
+        } else {
+            emptyList()
+        }
     }
 
     Column(
@@ -71,7 +152,7 @@ fun PendaftaranScreen(
             .fillMaxSize()
             .background(CustomBackground)
     ) {
-        // Header
+        // ... (Header remains same, logic handled by surrounding code)
         CommonHeader(title = "Pendaftaran PKL", onBack = onBack) {
             IconButton(
                 onClick = { showGuide = !showGuide },
@@ -94,9 +175,10 @@ fun PendaftaranScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // 1. Registration Status
+            // ... (Registration Status Logic remains same)
             if (regState is Resource.Success) {
-                val data = regState.data
+                // ... (Status Card Code)
+                  val data = regState.data
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
@@ -144,14 +226,14 @@ fun PendaftaranScreen(
                     }
                 }
             } else if (regState is Resource.Loading) {
-                Box(
+                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
                     contentAlignment = Alignment.Center
                 ) { CircularProgressIndicator(color = CustomPrimary) }
             } else if (regState is Resource.Error) {
-                Card(
+                 Card(
                     colors = CardDefaults.cardColors(containerColor = CustomDanger.copy(alpha = 0.1f)),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
@@ -183,10 +265,9 @@ fun PendaftaranScreen(
                 }
             }
 
-
             // 2. Guide
             if (showGuide) {
-                Card(
+                 Card(
                     colors = CardDefaults.cardColors(containerColor = CustomPrimary.copy(alpha = 0.1f)),
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
@@ -224,19 +305,29 @@ fun PendaftaranScreen(
                 }
             }
 
-            // 3. Documents List
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(bottom = 16.dp)
-            ) {
-                documents.forEach { doc ->
-                    DocumentCard(
-                        doc = doc,
-                        onUpload = {
-                            documents =
-                                documents.map { if (it.id == doc.id) it.copy(status = "pending") else it }
-                        }
-                    )
+            // 3. Documents List (Dynamic)
+            if (docTypesState is Resource.Loading) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                }
+            } else {
+                 Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    docItems.forEach { doc ->
+                        DocumentCard(
+                            doc = doc,
+                            isLoading = uploadState is Resource.Loading && activeTypeId.toString() == doc.id,
+                            onUpload = {
+                                activeTypeId = doc.id.toIntOrNull()
+                                launcher.launch("application/pdf")
+                            }
+                        )
+                    }
+                     if (docItems.isEmpty()) {
+                         Text("Tidak ada dokumen yang perlu diupload.", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                     }
                 }
             }
 
@@ -552,7 +643,7 @@ fun PendaftaranScreen(
 }
 
 @Composable
-fun DocumentCard(doc: DocumentItem, onUpload: () -> Unit) {
+fun DocumentCard(doc: DocumentItem, isLoading: Boolean = false, onUpload: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
@@ -601,20 +692,22 @@ fun DocumentCard(doc: DocumentItem, onUpload: () -> Unit) {
                         tint = CustomSuccess,
                         modifier = Modifier.size(20.dp)
                     )
-
                     "pending" -> Icon(
                         Icons.Default.Schedule,
                         null,
                         tint = CustomWarning,
                         modifier = Modifier.size(20.dp)
                     )
-
-                    else -> Icon(
-                        Icons.Default.Upload,
-                        null,
-                        tint = CustomPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    else -> if(isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = CustomPrimary)
+                    } else {
+                        Icon(
+                            Icons.Default.Upload,
+                            null,
+                            tint = CustomPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 
@@ -626,11 +719,16 @@ fun DocumentCard(doc: DocumentItem, onUpload: () -> Unit) {
                         onClick = onUpload,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CustomPrimary)
+                        colors = ButtonDefaults.buttonColors(containerColor = CustomPrimary),
+                        enabled = !isLoading
                     ) {
-                        Icon(Icons.Default.Upload, null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Upload Dokumen")
+                        if (isLoading) {
+                             CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.Upload, null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Upload Dokumen")
+                        }
                     }
                 }
 
