@@ -5,25 +5,13 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormR
 import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationStatusResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
-import com.wahyuagast.keamanansisteminformasimobile.data.repository.AuditRepository
 import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
-import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class RegistrationRepository {
     private val api = RetrofitClient.apiService
-    // AuditRepository will be created lazily where needed; registration repository is not Android-specific.
-
-    private fun getAuditRepo(): AuditRepository? {
-        // Try to get application context from RetrofitClient initialization path or return null
-        return try {
-            val ctx = com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient::class.java
-            // Not ideal - calling constructor with app context should be done in ViewModel instead.
-            null
-        } catch (_: Exception) { null }
-    }
 
     suspend fun getRegistrationStatus(): Resource<RegistrationStatusResponse> {
         return try {

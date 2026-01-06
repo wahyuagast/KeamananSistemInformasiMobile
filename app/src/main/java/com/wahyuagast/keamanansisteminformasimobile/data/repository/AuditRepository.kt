@@ -1,24 +1,27 @@
 package com.wahyuagast.keamanansisteminformasimobile.data.repository
 
 import android.content.Context
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.wahyuagast.keamanansisteminformasimobile.data.local.audit.AuditDatabase
-import com.wahyuagast.keamanansisteminformasimobile.data.model.AuditLogDto
 import com.wahyuagast.keamanansisteminformasimobile.data.model.AuditLogEntity
 import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
 import java.util.UUID
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 
 class AuditRepository(private val context: Context) {
     private val db = AuditDatabase.getInstance(context)
     private val dao = db.auditDao()
 
-    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun enqueueEvent(actorId: String?, eventType: String, resourceId: String?, details: Map<String, String>, severity: String = "INFO") {
         val id = UUID.randomUUID().toString()
-        val ts = java.time.Instant.now().toString()
+        // Use a portable ISO-8601-like timestamp compatible with older Android API levels
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+        val ts = sdf.format(Date())
         val detailsJson = Json.encodeToString(details)
         val entity = AuditLogEntity(id = id, timestamp = ts, actorId = actorId, eventType = eventType, resourceId = resourceId, details = detailsJson, severity = severity)
         dao.insert(entity)
@@ -31,4 +34,3 @@ class AuditRepository(private val context: Context) {
 
     suspend fun markAttempts(ids: List<String>) { if (ids.isNotEmpty()) dao.incrementAttemptCount(ids) }
 }
-

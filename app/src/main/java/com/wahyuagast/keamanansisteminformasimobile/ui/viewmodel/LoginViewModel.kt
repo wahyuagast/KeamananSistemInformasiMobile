@@ -55,7 +55,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 // Log a generic error for debugging; do not include untrusted server message bodies
                 AppLog.e("LoginViewModel", "Login failed: ${result.message}")
                 // enqueue audit event for failed login (do not include password)
-                auditRepository.enqueueEvent(null, "LOGIN_FAIL", null, mapOf("email" to e, "reason" to (result.message ?: "unknown")))
+                auditRepository.enqueueEvent(null, "LOGIN_FAIL", null, mapOf("email" to e, "reason" to result.message))
             }
             loginState = result
         }

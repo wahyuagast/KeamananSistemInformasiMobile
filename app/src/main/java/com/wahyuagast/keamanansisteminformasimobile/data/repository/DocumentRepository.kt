@@ -12,13 +12,13 @@ import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import com.wahyuagast.keamanansisteminformasimobile.data.repository.AuditRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
-class DocumentRepository(private val context: Context? = null) {
+class DocumentRepository(context: Context? = null) {
     private val apiService = RetrofitClient.apiService
     private val auditRepo = context?.let { AuditRepository(it.applicationContext) }
 
@@ -102,9 +102,9 @@ class DocumentRepository(private val context: Context? = null) {
 
     suspend fun uploadDocument(file: java.io.File, documentTypeId: Int): Resource<DocumentStoreResponse> {
         return try {
-            val requestFile = okhttp3.RequestBody.create("application/pdf".toMediaTypeOrNull(), file)
+            val requestFile = file.asRequestBody("application/pdf".toMediaTypeOrNull())
             val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
-            val typeIdBody = okhttp3.RequestBody.create("text/plain".toMediaTypeOrNull(), documentTypeId.toString())
+            val typeIdBody = documentTypeId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
 
             val response = apiService.uploadRegistrationDocument(body, typeIdBody)
             
@@ -132,9 +132,9 @@ class DocumentRepository(private val context: Context? = null) {
     // Admin actions: approve/reject document
     suspend fun approveDocument(documentId: Int, file: java.io.File, comment: String): Boolean {
         return try {
-            val noteBody = okhttp3.RequestBody.create("text/plain".toMediaTypeOrNull(), comment)
+            val noteBody = comment.toRequestBody("text/plain".toMediaTypeOrNull())
             // Assuming PDF is common, or generic octet-stream
-            val requestFile = okhttp3.RequestBody.create("application/pdf".toMediaTypeOrNull(), file)
+            val requestFile = file.asRequestBody("application/pdf".toMediaTypeOrNull())
             val docPart = okhttp3.MultipartBody.Part.createFormData("document", file.name, requestFile)
 
             val resp = apiService.approveDocument(documentId, noteBody, docPart)
@@ -184,20 +184,26 @@ class DocumentRepository(private val context: Context? = null) {
     suspend fun approveAwardeeRegister(id: Int): RegisterDto? {
         return try {
             val r = apiService.approveAwardeeRegister(id)
-            if (r.isSuccessful) {
+            return if (r.isSuccessful) {
                 auditRepo?.let { CoroutineScope(Dispatchers.IO).launch { it.enqueueEvent(null, "REGISTER_APPROVE", id.toString(), emptyMap()) } }
-                r.body()?.register else null
+                r.body()?.register
+            } else {
+                null
+            }
         } catch (_: Exception) {
-            null
+            return null
         }
     }
 
     suspend fun rejectAwardeeRegister(id: Int): RegisterDto? {
         return try {
             val r = apiService.rejectAwardeeRegister(id)
-            if (r.isSuccessful) {
+            return if (r.isSuccessful) {
                 auditRepo?.let { CoroutineScope(Dispatchers.IO).launch { it.enqueueEvent(null, "REGISTER_REJECT", id.toString(), emptyMap()) } }
-                r.body()?.register else null
+                r.body()?.register
+            } else {
+                null
+            }
         } catch (_: Exception) {
             null
         }
