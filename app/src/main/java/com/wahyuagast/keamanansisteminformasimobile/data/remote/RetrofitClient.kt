@@ -11,7 +11,6 @@ import com.wahyuagast.keamanansisteminformasimobile.BuildConfig
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 
@@ -23,21 +22,8 @@ object RetrofitClient {
         coerceInputValues = true
     }
 
-    ///Critical level = HttpLoggingInterceptor.Level.BODY will expose login info
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        // Enable basic logging only on debug builds and redact Authorization header if supported.
-        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
-        // If your OkHttp version supports redactHeader, enable it when debugging:
-        if (BuildConfig.DEBUG) {
-            try {
-                // reflection-safe: some versions expose redactHeader(name)
-                val m = this::class.java.getMethod("redactHeader", String::class.java)
-                m.invoke(this, "Authorization")
-            } catch (_: Exception) {
-                // ignore if not supported
-            }
-        }
-    }
+    // Note: removed OkHttp's HttpLoggingInterceptor to avoid printing full request URLs or bodies.
+    // We keep a dedicated small interceptor later that logs only method and a masked Authorization token.
 
     private lateinit var tokenManager: com.wahyuagast.keamanansisteminformasimobile.data.local.TokenManager
     private var deviceId: String? = null
@@ -48,6 +34,16 @@ object RetrofitClient {
         val appCtx = context.applicationContext
         tokenManager = com.wahyuagast.keamanansisteminformasimobile.data.local.TokenManager(appCtx)
         deviceId = Settings.Secure.getString(appCtx.contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
+
+        // Ensure OkHttp's internal loggers don't print request URLs or headers at INFO level.
+        // We set java.util.logging levels for okhttp3 to WARNING so internal debugging logs are suppressed.
+        try {
+            val jul = java.util.logging.Logger.getLogger("okhttp3")
+            jul.level = java.util.logging.Level.WARNING
+            java.util.logging.Logger.getLogger("okhttp3.OkHttpClient").level = java.util.logging.Level.WARNING
+        } catch (e: Exception) {
+            AppLog.w("RetrofitClient", "Could not set okhttp logger level: ${e.message}")
+        }
 
         // Schedule a periodic work to upload audit logs when network is available
         try {
@@ -63,7 +59,6 @@ object RetrofitClient {
 
     private val okHttpClient by lazy {
         OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
 
             // Add app headers (always) in a dedicated interceptor so later interceptors can observe them
             .addInterceptor { chain ->

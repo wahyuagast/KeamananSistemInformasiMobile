@@ -130,57 +130,86 @@ Production logging policy (simple)
 - Production builds: no `Level.BODY` network logging and no print of tokens or PII.
 - Debug builds (developer machines): you may enable `Level.BASIC` or `Level.BODY` but redact headers using `redactHeader("Authorization")` and never commit logs containing secrets.
 
-Server-side checklist (what MUST be implemented on server)
-- Rate limiting per IP and per account for authentication endpoints.
-- Exponential lockout / exponential delay server-side for repeated failed login attempts.
-- Strict input validation and parameterized queries (no SQL concatenation).
-- Validate file MIME type and size; store files safely and enforce access checks.
-- Use HTTPS, secure cookies, and short-lived access tokens (with refresh tokens and revocation support).
+---
 
-Developer commands & quick checks
-- Find risky logs in the project:
-```bash
-grep -R "Log\.\|android.util.Log" -n app || true
+## Sensitive data storage — current implementation (detailed)
+
+This repository implements secure storage of authentication tokens using AndroidX Security's `EncryptedSharedPreferences` backed by a `MasterKey` stored in the Android Keystore. The implementation is located at:
+
+`app/src/main/java/com/wahyuagast/keamanansisteminformasimobile/data/local/TokenManager.kt`
+
+The important implementation details are:
+
+- The class creates a `MasterKey` using AES256_GCM and uses it to initialize `EncryptedSharedPreferences`.
+- Tokens are stored under a single key (`access_token`) in the encrypted prefs file `secure_auth_prefs`.
+- The class intentionally avoids logging the contents of the token; it only logs a generic message when saving.
+
+Exact reasons this is secure:
+- `EncryptedSharedPreferences` uses the Android Keystore to hold the encryption key (MasterKey). The key material is not directly accessible to the app process and is protected by the OS.
+- Keys are generated with AES256_GCM which provides authenticated encryption.
+- Data written to `EncryptedSharedPreferences` is encrypted on disk; even if an attacker obtains the file, they cannot decrypt values without the key.
+
+Limitations and threat model (be explicit for your assignment):
+- EncryptedSharedPreferences protects data at rest in normal scenarios. If the device is physically compromised or rooted and the attacker has kernel-level access, they may be able to extract keys or memory.
+- On devices that do not have hardware-backed keystore, keys are still protected but only software-backed—strong but not as robust as hardware-backed (StrongBox) keys.
+- If the user enables device backups and backups are not encrypted with a device-protected key, there is an additional risk — ensure backups are configured safely or exclude the file.
+
+Operational notes (how to test & verify)
+1) Verify that `TokenManager` is used throughout the app for saving and getting tokens. Search for `TokenManager(` or `saveToken(` in the repo.
+2) Run the app, perform a login, then inspect the app's data directory (on a non-rooted emulator or via `adb shell`) and confirm that the file `secure_auth_prefs` exists but its contents are not readable plaintext.
+   - Example (on an emulator with `adb shell`):
+     - `adb shell ls -l /data/data/<package>/shared_prefs/` — file will exist but encrypted
+     - `adb shell cat /data/data/<package>/shared_prefs/secure_auth_prefs.xml` — you should see unreadable, encrypted blobs (do not attempt on production device)
+3) Verify logs: login should not print the token; `AppLog` prints only a generic save message.
+
+Hardening options (optional enhancements you can mention in the assignment)
+- Require user authentication (biometric or device PIN) for key usage. This can be done by creating the `MasterKey` with `setUserAuthenticationRequired(true)` and appropriate `setUserAuthenticationValidityDurationSeconds` settings. This adds UX friction (user must authenticate to access the token).
+- Use StrongBox (hardware-backed) when available by requesting `setIsStrongBoxBacked(true)` when generating the key parameters — this ensures keys live in secure hardware.
+- Rotate keys periodically: generate a new MasterKey and re-encrypt stored values (careful with migration logic).
+
+Code example (TokenManager used in this project)
+
+```kotlin
+// app/src/main/java/.../TokenManager.kt
+class TokenManager(context: Context) {
+    private val prefs: SharedPreferences
+    companion object {
+        private const val FILE_NAME = "secure_auth_prefs"
+        private const val ACCESS_TOKEN_KEY = "access_token"
+    }
+    init {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        prefs = EncryptedSharedPreferences.create(
+            context,
+            FILE_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+    fun saveToken(token: String) {
+        prefs.edit().putString(ACCESS_TOKEN_KEY, token).apply()
+    }
+    fun getToken(): String? = prefs.getString(ACCESS_TOKEN_KEY, null)
+    fun clearToken() { prefs.edit().clear().apply() }
+}
 ```
-- Build a release locally (checks for accidental debug features):
-```bash
-./gradlew assembleRelease
-```
-- Run a dependency check (example using OWASP Dependency-Check CLI):
-```bash
-dependency-check --project "SIMOPKL" --scan ./app
-```
 
-How to review a PR for security (short checklist for reviewers)
-- No tokens or secrets in the diff.
-- No `Log.d` printing request/response bodies or tokens.
-- Network logging in `RetrofitClient` is redacted and controlled by build type.
-- Token storage uses an encrypted store (Keystore/EncryptedSharedPreferences) or a secure alternative.
-- Server error messages are not printed verbatim in client logs; only safe messages.
-- File upload size and type are validated client-side and re-validated on the server.
+Suggested assignment phrasing (short paragraph you can copy)
+> The app stores authentication tokens securely with AndroidX EncryptedSharedPreferences and a MasterKey stored in the Android Keystore. The key uses AES256-GCM and the pref file is encrypted at rest, preventing other apps or casual attackers from reading the token. The `TokenManager` class centralizes token handling. Note that this protects against typical app-data-extraction threats; physically compromised or rooted devices remain a more difficult threat that requires hardware-backed protections and runtime hardening.
 
-Frequently asked questions (FAQ, simple answers)
-Q: Is client-side sanitization enough to stop attackers?
-A: No. Client-side sanitization improves UX and reduces accidental issues. The server must validate and sanitize — the server is the real authority.
+Automated checks you can add (CI)
+- Fail PRs if any file writes to plain `SharedPreferences` (grep for `getSharedPreferences\(|edit\(\)\.putString\(` without `EncryptedSharedPreferences`) — reject unless justified.
+- Run a simple grep to detect raw `Log.d` calls with suspicious keywords such as `token`, `password`, or `Authorization`.
 
-Q: Why not log full network bodies while debugging?
-A: Because logs can leak tokens or private data. If you absolutely need full logs, enable them only on a local developer machine, scrub/redact secrets, and never ship those logs.
+Next steps I can implement for you
+- Add optional biometric protection (MasterKey user-auth) and migration logic.
+- Add a small unit/instrumentation test that verifies `TokenManager.saveToken()` followed by `getToken()` returns the same value on emulator; the test should not print the token.
+- Add a CI script that rejects plain SharedPreferences or unredacted log usage in the repository.
 
-Q: Should I store tokens in plain SharedPreferences?
-A: No. Use EncryptedSharedPreferences or another Keystore-backed solution. Plain SharedPreferences can be read on a rooted device.
-
-Next steps (suggested improvements)
-- Add a small `AppLog` wrapper and replace remaining `Log.*` usages automatically (I can implement this for you).
-- Add unit tests for `InputSanitizer` to ensure expected behavior.
-- Add a debug build variant that sets a flag for safe redacted logging.
-- Document the server-side requirements in a short `SERVER_SECURITY.md` and coordinate with backend developers.
-
-If you want, I can:
-- Add a short developer-focused `SECURITY.md` section to the `README.md`.
-- Implement the `AppLog` wrapper and replace remaining `Log.*` usages.
-- Add unit tests for `InputSanitizer` and a small Robolectric test verifying `TokenManager` stores and returns token values (without printing them).
-
-If you'd like me to make any of the code examples into real files in the repo (for example, create `AppLog.kt` and replace `Log` calls), tell me which one to start with and I'll implement it and push a commit.
+If you want any of those implemented, tell me which one (biometric hardening, tests, or CI checks) and I will implement it and push the changes.
 
 ---
 Generated: 2026-01-06
