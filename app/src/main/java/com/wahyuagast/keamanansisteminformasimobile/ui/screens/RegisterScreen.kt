@@ -42,6 +42,7 @@ import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
 import com.wahyuagast.keamanansisteminformasimobile.ui.utils.ValidationUtils
 import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.RegisterViewModel
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
+import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
 
 @Composable
 fun RegisterScreen(
@@ -76,7 +77,26 @@ fun RegisterScreen(
             }
 
             is Resource.Error -> {
-                generalError = s.message
+                // Hide raw JSON parsing / stack messages from users. Show a friendly message instead
+                val raw = s.message ?: ""
+                if (raw.contains("json", ignoreCase = true) && raw.contains("unexpected", ignoreCase = true)) {
+                    // Try to extract an offset or position from messages like:
+                    // "Unexpected JSON token at offset 123" or "unexpected character (offset: 123)"
+                    val offsetRegex = Regex("(?:offset[:\\s]*)(\\d+)", RegexOption.IGNORE_CASE)
+                    val match = offsetRegex.find(raw)
+                    val offsetPart = match?.groups?.get(1)?.value
+
+                    generalError = if (offsetPart != null) {
+                        "Terjadi kesalahan pada respons server (format tidak sesuai) di posisi sekitar $offsetPart. Isi respons tidak ditampilkan untuk keamanan."
+                    } else {
+                        "Terjadi kesalahan pada respons server (format tidak sesuai). Silakan coba lagi nanti."
+                    }
+
+                    // Log the raw error for debugging (not shown to user)
+                    AppLog.e("RegisterScreen", "Server response parse error: $raw")
+                } else {
+                    generalError = raw
+                }
                 // map field errors if provided
                 if (!s.errors.isNullOrEmpty()) {
                     fullnameError = s.errors["fullname"]?.firstOrNull()

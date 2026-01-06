@@ -2,14 +2,39 @@ package com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,11 +45,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBackground
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBlack
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
 import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.AdminProfileViewModel
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
@@ -43,10 +70,18 @@ fun AdminProfileScreen(
     // Observe update state for Toast
     LaunchedEffect(updateState) {
         if (updateState is Resource.Success) {
-            android.widget.Toast.makeText(context, updateState.data.message ?: "Update Success", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(
+                context,
+                updateState.data.message ?: "Update Success",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
             viewModel.resetUpdateState()
         } else if (updateState is Resource.Error) {
-            android.widget.Toast.makeText(context, updateState.message, android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(
+                context,
+                updateState.message,
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
             viewModel.resetUpdateState()
         }
     }
@@ -81,7 +116,6 @@ fun AdminProfileScreen(
             nim = a?.nim ?: ""
             degree = a?.degree ?: ""
             phone = a?.phoneNumber ?: ""
-            // Bind ID, similar to student profile
             studyProgramId = a?.studyProgramId?.toString() ?: ""
             year = a?.year ?: ""
             fullname = a?.fullname ?: ""
@@ -89,14 +123,19 @@ fun AdminProfileScreen(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(CustomBackground)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(CustomBackground)
     ) {
         // App Bar
         Column(
-            modifier = Modifier.fillMaxWidth().background(Color.White)
-                .statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-             Row(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -104,88 +143,142 @@ fun AdminProfileScreen(
                 IconButton(onClick = onBack) {
                     Icon(Icons.Default.ArrowBack, "Back", tint = CustomPrimary)
                 }
-                Text("Profil Admin", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                
+                Text(
+                    "Profil Admin",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
                 TextButton(onClick = {
                     if (isEditing) {
                         // SAVE
-                        val file = selectedImageUri?.let { com.wahyuagast.keamanansisteminformasimobile.utils.FileUtils.getFileFromUri(context, it) }
-                        viewModel.updateProfile(email, username, nim, degree, phone, studyProgramId, year, fullname, file)
+                        val file = selectedImageUri?.let {
+                            com.wahyuagast.keamanansisteminformasimobile.utils.FileUtils.getFileFromUri(
+                                context,
+                                it
+                            )
+                        }
+                        viewModel.updateProfile(
+                            email,
+                            username,
+                            nim,
+                            degree,
+                            phone,
+                            studyProgramId,
+                            year,
+                            fullname,
+                            file
+                        )
                         isEditing = false
                     } else {
                         isEditing = true
                     }
                 }) {
-                    Text(if (isEditing) "Simpan" else "Edit", color = CustomPrimary, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (isEditing) "Simpan" else "Edit",
+                        color = CustomPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
 
         if (state is Resource.Loading && !isEditing) { // Don't show loading when editing (saving handled by toast)
-             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CustomPrimary) }
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator(color = CustomPrimary) }
         } else if (state is Resource.Success) {
             Column(
-                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Avatar
                 Box(
-                    modifier = Modifier.size(100.dp).background(CustomPrimary, CircleShape)
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(CustomPrimary, CircleShape)
                         .clickable(enabled = isEditing) { launcher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
                     if (selectedImageUri != null) {
-                         // Ideally show the selected image using Coil, but avoiding new libs if possible or use Coil if added.
-                         // Coil was added in build.gradle? Yes: io.coil-kt:coil-compose:2.4.0
-                         coil.compose.AsyncImage(
-                             model = selectedImageUri,
-                             contentDescription = null,
-                             modifier = Modifier.fillMaxSize().clip(CircleShape),
-                             contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                         )
+                        coil.compose.AsyncImage(
+                            model = selectedImageUri,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
                     } else {
-                         Text(email.firstOrNull()?.uppercase() ?: "?", style = MaterialTheme.typography.displayMedium, color = Color.White)
+                        Text(
+                            email.firstOrNull()?.uppercase() ?: "?",
+                            style = MaterialTheme.typography.displayMedium,
+                            color = Color.White
+                        )
                     }
-                    
+
                     if (isEditing) {
-                        Box(modifier = Modifier.align(Alignment.BottomEnd).background(Color.White, CircleShape).padding(4.dp)) {
-                            Icon(Icons.Default.Edit, null, tint = CustomPrimary, modifier = Modifier.size(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .background(Color.White, CircleShape)
+                                .padding(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                null,
+                                tint = CustomPrimary,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Card(
-                     modifier = Modifier.fillMaxWidth(),
-                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                     shape = RoundedCornerShape(12.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         EditProfileField("Full Name", fullname, isEditing) { fullname = it }
                         Divider(Modifier.padding(vertical = 8.dp))
                         EditProfileField("Email", email, isEditing) { email = it }
-                         Divider(Modifier.padding(vertical = 8.dp))
+                        Divider(Modifier.padding(vertical = 8.dp))
                         EditProfileField("Username", username, isEditing) { username = it }
-                         Divider(Modifier.padding(vertical = 8.dp))
+                        Divider(Modifier.padding(vertical = 8.dp))
                         EditProfileField("NIM", nim, isEditing) { nim = it }
-                         Divider(Modifier.padding(vertical = 8.dp))
-                         EditProfileField("Degree", degree, isEditing) { degree = it }
-                         Divider(Modifier.padding(vertical = 8.dp))
-                         EditProfileField("Phone", phone, isEditing) { phone = it }
-                         Divider(Modifier.padding(vertical = 8.dp))
-                         EditProfileField("Study Program ID", studyProgramId, isEditing) { studyProgramId = it }
-                         Divider(Modifier.padding(vertical = 8.dp))
-                         EditProfileField("Year", year, isEditing) { year = it }
+                        Divider(Modifier.padding(vertical = 8.dp))
+                        EditProfileField("Degree", degree, isEditing) { degree = it }
+                        Divider(Modifier.padding(vertical = 8.dp))
+                        EditProfileField("Phone", phone, isEditing) { phone = it }
+                        Divider(Modifier.padding(vertical = 8.dp))
+                        EditProfileField(
+                            "Study Program ID",
+                            studyProgramId,
+                            isEditing
+                        ) { studyProgramId = it }
+                        Divider(Modifier.padding(vertical = 8.dp))
+                        EditProfileField("Year", year, isEditing) { year = it }
                     }
                 }
-                
+
                 if (!isEditing) {
                     Spacer(modifier = Modifier.height(24.dp))
-                     Button(
+                    Button(
                         onClick = { viewModel.logout(onLogout) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFEEEE), contentColor = Color.Red),
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFFEEEE),
+                            contentColor = Color.Red
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(Icons.Default.Logout, contentDescription = null)
@@ -199,7 +292,12 @@ fun AdminProfileScreen(
 }
 
 @Composable
-fun EditProfileField(label: String, value: String, isEditing: Boolean, onValueChange: (String) -> Unit) {
+fun EditProfileField(
+    label: String,
+    value: String,
+    isEditing: Boolean,
+    onValueChange: (String) -> Unit
+) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = CustomGray)
         if (isEditing) {
@@ -214,7 +312,12 @@ fun EditProfileField(label: String, value: String, isEditing: Boolean, onValueCh
                 )
             )
         } else {
-             Text(value.ifEmpty { "-" }, style = MaterialTheme.typography.bodyLarge, color = CustomBlack, modifier = Modifier.padding(top = 4.dp))
+            Text(
+                value.ifEmpty { "-" },
+                style = MaterialTheme.typography.bodyLarge,
+                color = CustomBlack,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }

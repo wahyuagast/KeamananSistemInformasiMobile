@@ -4,9 +4,9 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.ProfileResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaTypeOrNull // Import the extension function
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody // Import the extension function
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 
 class ProfileRepository {
@@ -40,17 +40,19 @@ class ProfileRepository {
     ): Resource<com.wahyuagast.keamanansisteminformasimobile.data.model.UpdateProfileResponse> {
         return try {
             val mediaType = "multipart/form-data".toMediaTypeOrNull()
-            
-            // Allow empty strings if user cleared them, assuming API handles or ignores
+
             val emailPart = if (email.isNotEmpty()) email.toRequestBody(mediaType) else null
-            val usernamePart = if (username.isNotEmpty()) username.toRequestBody(mediaType) else null
+            val usernamePart =
+                if (username.isNotEmpty()) username.toRequestBody(mediaType) else null
             val nimPart = if (nim.isNotEmpty()) nim.toRequestBody(mediaType) else null
             val degreePart = if (degree.isNotEmpty()) degree.toRequestBody(mediaType) else null
-            val phonePart = if (phoneNumber.isNotEmpty()) phoneNumber.toRequestBody(mediaType) else null
-             // Ensure this is properly sent as the key 'studyProgramId'
-            val studyPart = if (studyProgramId.isNotEmpty()) studyProgramId.toRequestBody(mediaType) else null
+            val phonePart =
+                if (phoneNumber.isNotEmpty()) phoneNumber.toRequestBody(mediaType) else null
+            val studyPart =
+                if (studyProgramId.isNotEmpty()) studyProgramId.toRequestBody(mediaType) else null
             val yearPart = if (year.isNotEmpty()) year.toRequestBody(mediaType) else null
-            val fullnamePart = if (fullname.isNotEmpty()) fullname.toRequestBody(mediaType) else null
+            val fullnamePart =
+                if (fullname.isNotEmpty()) fullname.toRequestBody(mediaType) else null
 
             val imagePart = if (imageFile != null) {
                 val requestFile = imageFile.asRequestBody("image/*".toMediaTypeOrNull())
@@ -59,7 +61,15 @@ class ProfileRepository {
             } else null
 
             val response = apiService.updateProfile(
-                emailPart, usernamePart, nimPart, degreePart, phonePart, studyPart, yearPart, fullnamePart, imagePart
+                emailPart,
+                usernamePart,
+                nimPart,
+                degreePart,
+                phonePart,
+                studyPart,
+                yearPart,
+                fullnamePart,
+                imagePart
             )
 
             if (response.isSuccessful && response.body() != null) {

@@ -3,16 +3,45 @@ package com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,10 +49,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.CommonHeader
-import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
-import com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository
 import com.wahyuagast.keamanansisteminformasimobile.data.model.AwardeeDto
+import com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.CommonHeader
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBackground
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBlack
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomDanger
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPurple
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomSuccess
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomWarning
 import kotlinx.coroutines.launch
 
 @Composable
@@ -63,14 +99,22 @@ fun AdminMahasiswaScreen(onBack: () -> Unit) {
     val filtered = mahasiswaList.filter { m ->
         val matchesFilter = when (activeFilter) {
             "Semua" -> true
-            "Pendaftaran" -> m.status.lowercase().contains("daftar") || m.status.lowercase().contains("pendaftaran")
-            "Pelaksanaan" -> m.status.lowercase().contains("pelaksanaan") || m.status.lowercase().contains("pelaksanaan")
+            "Pendaftaran" -> m.status.lowercase().contains("daftar") || m.status.lowercase()
+                .contains("pendaftaran")
+
+            "Pelaksanaan" -> m.status.lowercase().contains("pelaksanaan") || m.status.lowercase()
+                .contains("pelaksanaan")
+
             "Monev" -> m.status.lowercase().contains("monev")
             "Ujian" -> m.status.lowercase().contains("ujian")
             "Selesai" -> m.status.lowercase().contains("selesai")
             else -> true
         }
-        val matchesSearch = search.isBlank() || m.nama.contains(search, ignoreCase = true) || m.nim.contains(search, ignoreCase = true)
+        val matchesSearch =
+            search.isBlank() || m.nama.contains(search, ignoreCase = true) || m.nim.contains(
+                search,
+                ignoreCase = true
+            )
         matchesFilter && matchesSearch
     }
 
@@ -79,14 +123,29 @@ fun AdminMahasiswaScreen(onBack: () -> Unit) {
             .fillMaxSize()
             .background(CustomBackground)
     ) {
+        // Reserve a fixed trailing area so the title remains visually centered and
+        // so the refresh icon won't be squished when an add button (or other controls)
+        // are present. This keeps a stable header layout regardless of trailing content.
         CommonHeader(title = "Data Mahasiswa", onBack = onBack) {
-            IconButton(
-                onClick = { scope.launch { loadAwardees() } },
+            Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .background(CustomBackground, CircleShape)
+                    .width(96.dp)
+                    .padding(end = 4.dp),
+                contentAlignment = Alignment.CenterEnd
             ) {
-                Icon(Icons.Default.Refresh, null, tint = CustomPrimary, modifier = Modifier.size(20.dp))
+                IconButton(
+                    onClick = { scope.launch { loadAwardees() } },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(CustomBackground, CircleShape)
+                ) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        null,
+                        tint = CustomPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 
@@ -118,7 +177,14 @@ fun AdminMahasiswaScreen(onBack: () -> Unit) {
                     .padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf("Semua", "Pendaftaran", "Pelaksanaan", "Monev", "Ujian", "Selesai").forEach { filter ->
+                listOf(
+                    "Semua",
+                    "Pendaftaran",
+                    "Pelaksanaan",
+                    "Monev",
+                    "Ujian",
+                    "Selesai"
+                ).forEach { filter ->
                     val selected = activeFilter == filter
                     FilterChip(
                         selected = selected,
@@ -182,18 +248,26 @@ fun MahasiswaCard(mhs: MahasiswaItem, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Box(
-                    modifier = Modifier.size(48.dp).background(CustomPrimary, CircleShape),
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(CustomPrimary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.Person, null, tint = Color.White)
                 }
                 Column {
                     Text(mhs.nama, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
-                    Text("${mhs.nim} • ${mhs.prodi}", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                    Text(
+                        "${mhs.nim} • ${mhs.prodi}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CustomGray
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     StatusPill(mhs.status)
                 }
@@ -202,13 +276,19 @@ fun MahasiswaCard(mhs: MahasiswaItem, onClick: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 LinearProgressIndicator(
                     progress = { mhs.progress / 100f },
-                    modifier = Modifier.weight(1f).height(8.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(8.dp),
                     color = CustomPrimary,
                     trackColor = CustomBackground,
                     strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("${mhs.progress}%", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                Text(
+                    "${mhs.progress}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CustomGray
+                )
             }
         }
     }
@@ -216,7 +296,7 @@ fun MahasiswaCard(mhs: MahasiswaItem, onClick: () -> Unit) {
 
 @Composable
 fun StatusPill(status: String) {
-    val color = when(status) {
+    val color = when (status) {
         "Pelaksanaan" -> CustomPrimary
         "Ujian" -> CustomPurple
         "Monev" -> CustomDanger
@@ -235,14 +315,23 @@ fun StatusPill(status: String) {
 
 @Composable
 fun AdminMahasiswaDetailDialog(mhs: MahasiswaItem, onDismiss: () -> Unit) {
-    val repo = remember { com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository() }
+    val repo =
+        remember { com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository() }
     val context = LocalContext.current
-    var detail by remember { mutableStateOf<com.wahyuagast.keamanansisteminformasimobile.data.model.AwardeeDto?>(null) }
+    var detail by remember {
+        mutableStateOf<com.wahyuagast.keamanansisteminformasimobile.data.model.AwardeeDto?>(
+            null
+        )
+    }
     var isLoading by remember { mutableStateOf(false) }
 
     LaunchedEffect(mhs.id) {
         isLoading = true
-        detail = try { repo.getAwardeeDetail(mhs.id) } catch (_: Exception) { null }
+        detail = try {
+            repo.getAwardeeDetail(mhs.id)
+        } catch (_: Exception) {
+            null
+        }
         isLoading = false
     }
 
@@ -254,53 +343,112 @@ fun AdminMahasiswaDetailDialog(mhs: MahasiswaItem, onDismiss: () -> Unit) {
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Box(
-                    modifier = Modifier.align(Alignment.CenterHorizontally).width(40.dp).height(4.dp).background(Color(0xFFC6C6C8), CircleShape)
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(Color(0xFFC6C6C8), CircleShape)
                 )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 if (isLoading) {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator() }
                 } else {
                     // header
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 24.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 24.dp)
+                    ) {
                         Box(
-                            modifier = Modifier.size(64.dp).background(CustomPrimary, CircleShape),
+                            modifier = Modifier
+                                .size(64.dp)
+                                .background(CustomPrimary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(32.dp))
+                            Icon(
+                                Icons.Default.Person,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            Text(detail?.fullname ?: mhs.nama, style = MaterialTheme.typography.titleMedium, color = CustomBlack)
-                            Text(detail?.nim ?: mhs.nim, style = MaterialTheme.typography.bodyMedium, color = CustomGray)
+                            Text(
+                                detail?.fullname ?: mhs.nama,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = CustomBlack
+                            )
+                            Text(
+                                detail?.nim ?: mhs.nim,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = CustomGray
+                            )
                         }
                     }
 
                     // info cards
-                    Card(colors = CardDefaults.cardColors(containerColor = CustomBackground), modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = CustomBackground),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("Prodi", style = MaterialTheme.typography.labelSmall, color = CustomGray)
-                            Text(detail?.prodi ?: mhs.prodi, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
+                            Text(
+                                "Prodi",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CustomGray
+                            )
+                            Text(
+                                detail?.prodi ?: mhs.prodi,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = CustomBlack
+                            )
                         }
                     }
 
-                    Card(colors = CardDefaults.cardColors(containerColor = CustomBackground), modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = CustomBackground),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            Text("Status PKL", style = MaterialTheme.typography.labelSmall, color = CustomGray)
-                            Text(detail?.status ?: mhs.status, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
+                            Text(
+                                "Status PKL",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = CustomGray
+                            )
+                            Text(
+                                detail?.status ?: mhs.status,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = CustomBlack
+                            )
                         }
                     }
 
                     // additional read-only fields from detail if available
                     detail?.startDate?.let { sd ->
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Start Date", style = MaterialTheme.typography.labelSmall, color = CustomGray)
+                        Text(
+                            "Start Date",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = CustomGray
+                        )
                         Text(sd, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
                     }
 
                     detail?.endDate?.let { ed ->
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("End Date", style = MaterialTheme.typography.labelSmall, color = CustomGray)
+                        Text(
+                            "End Date",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = CustomGray
+                        )
                         Text(ed, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
                     }
 
@@ -310,7 +458,10 @@ fun AdminMahasiswaDetailDialog(mhs: MahasiswaItem, onDismiss: () -> Unit) {
                         Button(
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = CustomBackground, contentColor = CustomBlack),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = CustomBackground,
+                                contentColor = CustomBlack
+                            ),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text("Tutup")
@@ -329,9 +480,17 @@ private fun AwardeeDto.toMahasiswaItem(): MahasiswaItem {
         nama = this.fullname,
         nim = this.nim,
         prodi = this.prodi ?: "-",
-        status = this.status?.replace('_', ' ')?.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } ?: "-",
+        status = this.status?.replace('_', ' ')
+            ?.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() } ?: "-",
         progress = this.progress ?: 0
     )
 }
 
-data class MahasiswaItem(val id: Int, val nama: String, val nim: String, val prodi: String, val status: String, val progress: Int)
+data class MahasiswaItem(
+    val id: Int,
+    val nama: String,
+    val nim: String,
+    val prodi: String,
+    val status: String,
+    val progress: Int
+)

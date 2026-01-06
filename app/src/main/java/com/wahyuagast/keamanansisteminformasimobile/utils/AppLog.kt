@@ -7,7 +7,8 @@ import com.wahyuagast.keamanansisteminformasimobile.BuildConfig
  * Prefer calling AppLog.d/e/w(...) instead of android.util.Log directly.
  */
 object AppLog {
-    private fun redact(value: String?): String = value?.replace(Regex("Bearer\\s+(.+)"), "Bearer [REDACTED]") ?: "(none)"
+    private fun redact(value: String?): String =
+        value?.replace(Regex("Bearer\\s+(.+)"), "Bearer [REDACTED]") ?: "(none)"
 
     fun d(tag: String, msg: String, token: String? = null) {
         // In release builds be conservative: still allow debug logs if needed but prefer using

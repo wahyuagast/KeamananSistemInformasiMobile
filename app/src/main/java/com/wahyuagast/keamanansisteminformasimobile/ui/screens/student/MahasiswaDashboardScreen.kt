@@ -2,7 +2,17 @@ package com.wahyuagast.keamanansisteminformasimobile.ui.screens.student
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,8 +20,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -23,11 +43,19 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBackground
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBlack
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomDanger
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomDanger2
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomIndigo
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPurple
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomSuccess
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomWarning
 import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel
-import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MonevViewModel
-
+import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -39,7 +67,7 @@ fun MahasiswaDashboardScreen(
     onNavigate: (String) -> Unit,
     onLogout: () -> Unit
 ) {
-    LaunchedEffect(Unit) { 
+    LaunchedEffect(Unit) {
         viewModel.loadProfile()
         viewModel.loadMitras()
     }
@@ -53,7 +81,7 @@ fun MahasiswaDashboardScreen(
         val awardee = state.data.user.awardee
         userName = awardee?.fullname ?: state.data.user.email
     }
-    
+
     // Handle Submission Success (Moved to SuratScreen)
 
     Column(
@@ -73,8 +101,10 @@ fun MahasiswaDashboardScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left: avatar + texts. Use weight so the right-side icon button keeps space.
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Box(
                         modifier = Modifier
                             .size(48.dp)
@@ -97,7 +127,15 @@ fun MahasiswaDashboardScreen(
                             maxLines = 1
                         )
                         if (state is Resource.Loading) {
-                            Box(modifier = Modifier.width(120.dp).height(20.dp).background(CustomGray.copy(alpha = 0.2f), RoundedCornerShape(4.dp)))
+                            Box(
+                                modifier = Modifier
+                                    .width(120.dp)
+                                    .height(20.dp)
+                                    .background(
+                                        CustomGray.copy(alpha = 0.2f),
+                                        RoundedCornerShape(4.dp)
+                                    )
+                            )
                         } else {
                             Text(
                                 text = userName,
@@ -129,7 +167,10 @@ fun MahasiswaDashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color(0xFFC6C6C8)))
+        Spacer(modifier = Modifier
+            .height(1.dp)
+            .fillMaxWidth()
+            .background(Color(0xFFC6C6C8)))
 
         // Content Scrollable Area
         Column(
@@ -171,15 +212,22 @@ fun MahasiswaDashboardScreen(
                         }
                         Box(
                             modifier = Modifier
-                                .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                                .background(
+                                    Color.White.copy(alpha = 0.2f),
+                                    RoundedCornerShape(16.dp)
+                                )
                                 .padding(horizontal = 12.dp, vertical = 4.dp)
                         ) {
-                            Text(text = "60%", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                text = "60%",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // Progress Bar
                     Box(
                         modifier = Modifier
@@ -192,13 +240,13 @@ fun MahasiswaDashboardScreen(
                                 .fillMaxWidth(0.6f)
                                 .height(8.dp)
                                 .background(Color.White, CircleShape)
-                            )
+                        )
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Timeline
             DashboardCard(
                 title = "Deadline Terdekat",
@@ -208,26 +256,46 @@ fun MahasiswaDashboardScreen(
                 val monevState = monevViewModel.monevState
                 when (monevState) {
                     is Resource.Loading -> {
-                        Box(modifier = Modifier.fillMaxWidth().height(56.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = CustomPrimary)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = CustomPrimary
+                            )
                         }
                     }
+
                     is Resource.Success -> {
                         val timeline = monevState.data.timeline
                         if (timeline.isEmpty()) {
-                            Text("Tidak ada deadline", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                            Text(
+                                "Tidak ada deadline",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CustomGray
+                            )
                         } else {
                             // find up to 3 timeline items nearest to now (by endDate/startDate/createdAt)
                             val nowMillis = System.currentTimeMillis()
                             val itemsWithDate = timeline.mapNotNull { item ->
-                                val d = parseToDate(item.endDate ?: item.startDate ?: item.createdAt)
+                                val d =
+                                    parseToDate(item.endDate ?: item.startDate ?: item.createdAt)
                                 if (d != null) Pair(item, d) else null
                             }
 
                             if (itemsWithDate.isEmpty()) {
-                                Text("Tidak ada deadline", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                                Text(
+                                    "Tidak ada deadline",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CustomGray
+                                )
                             } else {
-                                val nearestList = itemsWithDate.sortedBy { pair -> kotlin.math.abs(nowMillis - pair.second.time) }.take(3)
+                                val nearestList =
+                                    itemsWithDate.sortedBy { pair -> kotlin.math.abs(nowMillis - pair.second.time) }
+                                        .take(3)
                                 val periodsState = viewModel.periodsState
                                 nearestList.forEachIndexed { idx, (item, date) ->
                                     val relative = formatRelative(date)
@@ -246,19 +314,24 @@ fun MahasiswaDashboardScreen(
                                         onClick = { onNavigate("monev") }
                                     )
                                 }
-                             }
-                         }
-                     }
+                            }
+                        }
+                    }
 
                     is Resource.Error -> {
-                        Text(text = "Gagal memuat deadline: ${monevState.message}", style = MaterialTheme.typography.bodySmall, color = CustomDanger)
+                        Text(
+                            text = "Gagal memuat deadline: ${monevState.message}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomDanger
+                        )
                     }
+
                     else -> {}
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Referensi
             DashboardCard(
                 title = "Referensi Tempat PKL",
@@ -266,17 +339,30 @@ fun MahasiswaDashboardScreen(
                 iconTint = CustomPrimary
             ) {
                 val mitraState = viewModel.mitraState
-                
+
                 when (mitraState) {
                     is Resource.Loading -> {
-                        Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = CustomPrimary)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = CustomPrimary
+                            )
                         }
                     }
+
                     is Resource.Success -> {
                         val mitras = mitraState.data.mitra
                         if (mitras.isEmpty()) {
-                             Text("Belum ada data mitra", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                            Text(
+                                "Belum ada data mitra",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CustomGray
+                            )
                         } else {
                             mitras.take(5).forEachIndexed { index, mitra ->
                                 ReferenceItem(
@@ -289,15 +375,21 @@ fun MahasiswaDashboardScreen(
                             }
                         }
                     }
+
                     is Resource.Error -> {
-                        Text(text = "Gagal memuat: ${mitraState.message}", style = MaterialTheme.typography.bodySmall, color = CustomDanger)
+                        Text(
+                            text = "Gagal memuat: ${mitraState.message}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomDanger
+                        )
                     }
+
                     else -> {}
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Menu Grid
             val menuItems = listOf(
                 MenuItem("Profil", Icons.Default.Person, CustomPrimary, "profile"),
@@ -307,7 +399,7 @@ fun MahasiswaDashboardScreen(
                 MenuItem("Monev PKL", Icons.AutoMirrored.Filled.Assignment, CustomDanger2, "monev"),
                 MenuItem("Ujian PKL", Icons.Default.Book, CustomPurple, "ujian")
             )
-            
+
             // Chunked by 2
             menuItems.chunked(2).forEach { rowItems ->
                 Row(
@@ -317,7 +409,7 @@ fun MahasiswaDashboardScreen(
                     rowItems.forEach { item ->
                         MenuButton(
                             item = item,
-                            onClick = { 
+                            onClick = {
                                 onNavigate(item.route)
                             },
                             modifier = Modifier.weight(1f)
@@ -352,7 +444,12 @@ fun DashboardCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 12.dp)
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(20.dp)
+            )
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = title, fontWeight = FontWeight.SemiBold, color = CustomBlack)
         }
@@ -370,17 +467,20 @@ fun TimelineItem(
     isLast: Boolean,
     onClick: (() -> Unit)? = null
 ) {
-     Row(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(bottom = if (isLast) 0.dp else 12.dp)
     ) {
-         Box(
-             modifier = Modifier.padding(top = 6.dp).size(8.dp).background(color, CircleShape)
-         )
-         Spacer(modifier = Modifier.width(12.dp))
-         Column(modifier = Modifier.weight(1f)) {
+        Box(
+            modifier = Modifier
+                .padding(top = 6.dp)
+                .size(8.dp)
+                .background(color, CircleShape)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
             Spacer(modifier = Modifier.height(4.dp))
             // subtitle (relative)
@@ -388,7 +488,11 @@ fun TimelineItem(
             // optional periode and description
             periode?.let {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Periode: $it", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                Text(
+                    text = "Periode: $it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CustomGray
+                )
             }
             description?.let {
                 Spacer(modifier = Modifier.height(6.dp))
@@ -396,7 +500,10 @@ fun TimelineItem(
             }
             if (!isLast) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(CustomBackground))
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(CustomBackground))
             }
         }
     }
@@ -410,7 +517,12 @@ fun ReferenceItem(name: String, details: String) {
             .background(CustomBackground, RoundedCornerShape(12.dp))
             .padding(12.dp)
     ) {
-        Text(text = name, style = MaterialTheme.typography.bodyMedium, color = CustomBlack, fontWeight = FontWeight.Medium)
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodyMedium,
+            color = CustomBlack,
+            fontWeight = FontWeight.Medium
+        )
         Text(text = details, style = MaterialTheme.typography.bodySmall, color = CustomGray)
     }
 }
@@ -432,10 +544,20 @@ fun MenuButton(item: MenuItem, onClick: () -> Unit, modifier: Modifier = Modifie
                 .background(item.color.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = item.icon, contentDescription = null, tint = item.color, modifier = Modifier.size(20.dp))
+            Icon(
+                imageVector = item.icon,
+                contentDescription = null,
+                tint = item.color,
+                modifier = Modifier.size(20.dp)
+            )
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Text(text = item.label, style = MaterialTheme.typography.bodyMedium, color = CustomBlack, fontWeight = FontWeight.Medium)
+        Text(
+            text = item.label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = CustomBlack,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
@@ -452,12 +574,13 @@ private fun parseToDate(dateStr: String?): Date? {
         try {
             val sdf = SimpleDateFormat(p, Locale.getDefault())
             // when pattern includes 'Z' it's UTC
-            if (p.contains("'Z'" ) || p.contains("XXX")) {
+            if (p.contains("'Z'") || p.contains("XXX")) {
                 sdf.timeZone = TimeZone.getTimeZone("UTC")
             }
             val d = sdf.parse(dateStr)
             if (d != null) return d
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
     }
     return null
 }

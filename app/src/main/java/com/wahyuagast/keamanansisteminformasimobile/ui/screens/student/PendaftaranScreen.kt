@@ -2,36 +2,81 @@ package com.wahyuagast.keamanansisteminformasimobile.ui.screens.student
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBackground
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBlack
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomDanger
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomSuccess
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomWarning
 import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel
-import androidx.compose.material3.MenuAnchorType
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PendaftaranScreen(
-    onBack: () -> Unit,
-    viewModel: MahasiswaProfileViewModel = viewModel()
+    onBack: () -> Unit, viewModel: MahasiswaProfileViewModel = viewModel()
 ) {
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
         viewModel.loadRegistrationStatus()
-        viewModel.loadMitras() // ensure mitras are loaded for dropdown fallback
+        viewModel.loadMitras()
         viewModel.loadPeriods()
     }
     val regState = viewModel.registrationState
@@ -43,7 +88,7 @@ fun PendaftaranScreen(
     // Form State
     var selectedMitraId by remember { mutableStateOf<Int?>(null) }
     var selectedMitraName by remember { mutableStateOf("") }
-    var selectedPeriode by remember { mutableStateOf<String>("") } // Using ID
+    var selectedPeriode by remember { mutableStateOf<String>("") }
     var selectedPeriodeName by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
@@ -55,7 +100,6 @@ fun PendaftaranScreen(
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
 
-    // Mock Documents
     // Load Document Types
     LaunchedEffect(Unit) {
         viewModel.loadDocumentTypes()
@@ -93,16 +137,16 @@ fun PendaftaranScreen(
         }
 
         AlertDialog(
-            onDismissRequest = { 
-                showConfirmDialog = false 
-                pendingUri = null
-            },
+            onDismissRequest = {
+            showConfirmDialog = false
+            pendingUri = null
+        },
             title = { Text("Konfirmasi Upload") },
             text = { Text("Apakah Anda yakin ingin mengupload file \"$fileName\"?") },
             confirmButton = {
                 Button(onClick = {
                     activeTypeId?.let { id ->
-                         viewModel.uploadDocument(uri, id)
+                        viewModel.uploadDocument(uri, id)
                     }
                     showConfirmDialog = false
                     pendingUri = null
@@ -111,23 +155,26 @@ fun PendaftaranScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { 
+                TextButton(onClick = {
                     showConfirmDialog = false
                     pendingUri = null
                 }) {
                     Text("Batal")
                 }
-            }
-        )
+            })
     }
 
     // Upload Feedback
     LaunchedEffect(uploadState) {
         if (uploadState is Resource.Success) {
-            android.widget.Toast.makeText(context, "Dokumen berhasil diupload", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(
+                context, "Dokumen berhasil diupload", android.widget.Toast.LENGTH_SHORT
+            ).show()
             viewModel.resetUploadState()
         } else if (uploadState is Resource.Error) {
-            android.widget.Toast.makeText(context, uploadState.message, android.widget.Toast.LENGTH_LONG).show()
+            android.widget.Toast.makeText(
+                context, uploadState.message, android.widget.Toast.LENGTH_LONG
+            ).show()
             viewModel.resetUploadState()
         }
     }
@@ -135,13 +182,14 @@ fun PendaftaranScreen(
     // Combine Types and Status
     val docItems = remember(docTypesState, regState) {
         if (docTypesState is Resource.Success) {
-            val uploadedDocs = if (regState is Resource.Success) regState.data.documents else emptyList()
+            val uploadedDocs =
+                if (regState is Resource.Success) regState.data.documents else emptyList()
             docTypesState.data.documentTypes.map { type ->
                 val uploaded = uploadedDocs.find { it.documentTypeId == type.id }
                 DocumentItem(
                     id = type.id.toString(),
                     name = type.name,
-                    status = if (uploaded != null) "uploaded" else "empty" // Simplified status logic
+                    status = if (uploaded != null) "uploaded" else "empty"
                 )
             }
         } else {
@@ -154,7 +202,6 @@ fun PendaftaranScreen(
             .fillMaxSize()
             .background(CustomBackground)
     ) {
-        // ... (Header remains same, logic handled by surrounding code)
         CommonHeader(title = "Pendaftaran PKL", onBack = onBack) {
             IconButton(
                 onClick = { showGuide = !showGuide },
@@ -177,10 +224,8 @@ fun PendaftaranScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // ... (Registration Status Logic remains same)
             if (regState is Resource.Success) {
-                // ... (Status Card Code)
-                  val data = regState.data
+                val data = regState.data
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
@@ -230,14 +275,14 @@ fun PendaftaranScreen(
                     }
                 }
             } else if (regState is Resource.Loading) {
-                 Box(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
                     contentAlignment = Alignment.Center
                 ) { CircularProgressIndicator(color = CustomPrimary) }
             } else if (regState is Resource.Error) {
-                 Card(
+                Card(
                     colors = CardDefaults.cardColors(containerColor = CustomDanger.copy(alpha = 0.1f)),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
@@ -271,11 +316,10 @@ fun PendaftaranScreen(
 
             // 2. Guide
             if (showGuide) {
-                 Card(
+                Card(
                     colors = CardDefaults.cardColors(containerColor = CustomPrimary.copy(alpha = 0.1f)),
                     border = androidx.compose.foundation.BorderStroke(
-                        1.dp,
-                        CustomPrimary.copy(alpha = 0.2f)
+                        1.dp, CustomPrimary.copy(alpha = 0.2f)
                     ),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
@@ -315,7 +359,7 @@ fun PendaftaranScreen(
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))
                 }
             } else {
-                 Column(
+                Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
@@ -326,12 +370,15 @@ fun PendaftaranScreen(
                             onUpload = {
                                 activeTypeId = doc.id.toIntOrNull()
                                 launcher.launch("application/pdf")
-                            }
+                            })
+                    }
+                    if (docItems.isEmpty()) {
+                        Text(
+                            "Tidak ada dokumen yang perlu diupload.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomGray
                         )
                     }
-                     if (docItems.isEmpty()) {
-                         Text("Tidak ada dokumen yang perlu diupload.", style = MaterialTheme.typography.bodySmall, color = CustomGray)
-                     }
                 }
             }
 
@@ -382,7 +429,10 @@ fun PendaftaranScreen(
             }
 
             // 4. Form Pendaftaran Online
-            if (regState is Resource.Success && !regState.data.statusRegistrasi.equals("diterima", ignoreCase = true)) {
+            if (regState is Resource.Success && !regState.data.statusRegistrasi.equals(
+                    "diterima", ignoreCase = true
+                )
+            ) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
@@ -458,22 +508,26 @@ fun PendaftaranScreen(
                         val st = regState.data.statusRegistrasi
                         st.isBlank() || st.contains("belum", ignoreCase = true)
                     } else {
-                        // If we don't have registration state yet, allow the user to interact (optimistic)
+                        // If we don't have registration state yet, allow the user to interact
                         true
                     }
 
                     // If form is disabled, show a small helper to explain why
                     if (!isFormEnabled && regState is Resource.Success) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "Formulir tidak dapat diisi karena status pendaftaran: ${regState.data.statusRegistrasi}", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        Text(
+                            text = "Formulir tidak dapat diisi karena status pendaftaran: ${regState.data.statusRegistrasi}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomGray
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
                     // Mitra Dropdown
                     ExposedDropdownMenuBox(
-                        expanded = showMitraDropdown,
-                        onExpandedChange = { if (isFormEnabled) showMitraDropdown = !showMitraDropdown }
-                    ) {
+                        expanded = showMitraDropdown, onExpandedChange = {
+                            if (isFormEnabled) showMitraDropdown = !showMitraDropdown
+                        }) {
                         OutlinedTextField(
                             value = selectedMitraName,
                             onValueChange = {},
@@ -495,8 +549,7 @@ fun PendaftaranScreen(
                         )
                         ExposedDropdownMenu(
                             expanded = showMitraDropdown,
-                            onDismissRequest = { showMitraDropdown = false }
-                        ) {
+                            onDismissRequest = { showMitraDropdown = false }) {
                             // Prefer mitras from registration status (they may include additional info), otherwise fallback to global mitraState
                             if (regState is Resource.Success && regState.data.mitras.isNotEmpty()) {
                                 regState.data.mitras.forEach { mitra ->
@@ -506,19 +559,15 @@ fun PendaftaranScreen(
                                             selectedMitraId = mitra.id
                                             selectedMitraName = mitra.partnerName ?: ""
                                             showMitraDropdown = false
-                                        }
-                                    )
+                                        })
                                 }
                             } else if (mitraState is Resource.Success) {
                                 mitraState.data.mitra.forEach { mitra ->
-                                    DropdownMenuItem(
-                                        text = { Text(mitra.partnerName) },
-                                        onClick = {
-                                            selectedMitraId = mitra.id
-                                            selectedMitraName = mitra.partnerName
-                                            showMitraDropdown = false
-                                        }
-                                    )
+                                    DropdownMenuItem(text = { Text(mitra.partnerName) }, onClick = {
+                                        selectedMitraId = mitra.id
+                                        selectedMitraName = mitra.partnerName
+                                        showMitraDropdown = false
+                                    })
                                 }
                             }
                         }
@@ -528,9 +577,9 @@ fun PendaftaranScreen(
 
                     // Periode Dropdown
                     ExposedDropdownMenuBox(
-                        expanded = showPeriodeDropdown,
-                        onExpandedChange = { if (isFormEnabled) showPeriodeDropdown = !showPeriodeDropdown }
-                    ) {
+                        expanded = showPeriodeDropdown, onExpandedChange = {
+                            if (isFormEnabled) showPeriodeDropdown = !showPeriodeDropdown
+                        }) {
                         OutlinedTextField(
                             value = selectedPeriodeName,
                             onValueChange = {},
@@ -552,8 +601,7 @@ fun PendaftaranScreen(
                         )
                         ExposedDropdownMenu(
                             expanded = showPeriodeDropdown,
-                            onDismissRequest = { showPeriodeDropdown = false }
-                        ) {
+                            onDismissRequest = { showPeriodeDropdown = false }) {
                             // Prefer periods from registrationState, otherwise fallback to periodsState
                             val periodsList = when {
                                 regState is Resource.Success && regState.data.periods.isNotEmpty() -> regState.data.periods
@@ -572,8 +620,7 @@ fun PendaftaranScreen(
                                             startDate = periode.startDate?.replace("-", "/") ?: ""
                                             endDate = periode.endDate?.replace("-", "/") ?: ""
                                             showPeriodeDropdown = false
-                                        }
-                                    )
+                                        })
                                 }
                             } else {
                                 // No periods available: show a disabled info item
@@ -598,7 +645,9 @@ fun PendaftaranScreen(
                             Icon(
                                 Icons.Default.DateRange,
                                 null,
-                                modifier = Modifier.clickable(enabled = isFormEnabled) { showStartDatePicker = true })
+                                modifier = Modifier.clickable(enabled = isFormEnabled) {
+                                    showStartDatePicker = true
+                                })
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -608,7 +657,7 @@ fun PendaftaranScreen(
                             disabledTextColor = CustomBlack,
                             disabledBorderColor = CustomGray,
                             disabledLabelColor = CustomGray,
-                            disabledTrailingIconColor = if(isFormEnabled) CustomPrimary else CustomGray
+                            disabledTrailingIconColor = if (isFormEnabled) CustomPrimary else CustomGray
                         )
                     )
                     if (showStartDatePicker) {
@@ -619,8 +668,7 @@ fun PendaftaranScreen(
                                 TextButton(onClick = {
                                     datePickerState.selectedDateMillis?.let { millis ->
                                         val date = java.text.SimpleDateFormat(
-                                            "yyyy/MM/dd",
-                                            java.util.Locale.getDefault()
+                                            "yyyy/MM/dd", java.util.Locale.getDefault()
                                         ).format(java.util.Date(millis))
                                         startDate = date
                                     }
@@ -631,8 +679,7 @@ fun PendaftaranScreen(
                                 TextButton(onClick = {
                                     showStartDatePicker = false
                                 }) { Text("Cancel", color = CustomDanger) }
-                            }
-                        ) {
+                            }) {
                             DatePicker(state = datePickerState)
                         }
                     }
@@ -649,7 +696,9 @@ fun PendaftaranScreen(
                             Icon(
                                 Icons.Default.DateRange,
                                 null,
-                                modifier = Modifier.clickable(enabled = isFormEnabled) { showEndDatePicker = true })
+                                modifier = Modifier.clickable(enabled = isFormEnabled) {
+                                    showEndDatePicker = true
+                                })
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -659,7 +708,7 @@ fun PendaftaranScreen(
                             disabledTextColor = CustomBlack,
                             disabledBorderColor = CustomGray,
                             disabledLabelColor = CustomGray,
-                            disabledTrailingIconColor = if(isFormEnabled) CustomPrimary else CustomGray
+                            disabledTrailingIconColor = if (isFormEnabled) CustomPrimary else CustomGray
                         )
                     )
                     if (showEndDatePicker) {
@@ -670,8 +719,7 @@ fun PendaftaranScreen(
                                 TextButton(onClick = {
                                     datePickerState.selectedDateMillis?.let { millis ->
                                         val date = java.text.SimpleDateFormat(
-                                            "yyyy/MM/dd",
-                                            java.util.Locale.getDefault()
+                                            "yyyy/MM/dd", java.util.Locale.getDefault()
                                         ).format(java.util.Date(millis))
                                         endDate = date
                                     }
@@ -681,12 +729,10 @@ fun PendaftaranScreen(
                             dismissButton = {
                                 TextButton(onClick = { showEndDatePicker = false }) {
                                     Text(
-                                        "Cancel",
-                                        color = CustomDanger
+                                        "Cancel", color = CustomDanger
                                     )
                                 }
-                            }
-                        ) {
+                            }) {
                             DatePicker(state = datePickerState)
                         }
                     }
@@ -697,10 +743,7 @@ fun PendaftaranScreen(
                         onClick = {
                             if (selectedMitraId != null && selectedPeriode.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()) {
                                 viewModel.submitRegistrationForm(
-                                    selectedMitraId.toString(),
-                                    selectedPeriode,
-                                    startDate,
-                                    endDate
+                                    selectedMitraId.toString(), selectedPeriode, startDate, endDate
                                 )
                             } else {
                                 android.widget.Toast.makeText(
@@ -716,14 +759,12 @@ fun PendaftaranScreen(
                         shape = RoundedCornerShape(12.dp),
                         enabled = isFormEnabled && formState !is Resource.Loading,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = CustomPrimary,
-                            disabledContainerColor = CustomGray
+                            containerColor = CustomPrimary, disabledContainerColor = CustomGray
                         )
                     ) {
                         if (formState is Resource.Loading) {
                             CircularProgressIndicator(
-                                color = Color.White,
-                                modifier = Modifier.size(24.dp)
+                                color = Color.White, modifier = Modifier.size(24.dp)
                             )
                         } else {
                             Text("Simpan & Lanjutkan")
@@ -785,14 +826,20 @@ fun DocumentCard(doc: DocumentItem, isLoading: Boolean = false, onUpload: () -> 
                         tint = CustomSuccess,
                         modifier = Modifier.size(20.dp)
                     )
+
                     "pending" -> Icon(
                         Icons.Default.Schedule,
                         null,
                         tint = CustomWarning,
                         modifier = Modifier.size(20.dp)
                     )
-                    else -> if(isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = CustomPrimary)
+
+                    else -> if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = CustomPrimary
+                        )
                     } else {
                         Icon(
                             Icons.Default.Upload,
@@ -816,7 +863,11 @@ fun DocumentCard(doc: DocumentItem, isLoading: Boolean = false, onUpload: () -> 
                         enabled = !isLoading
                     ) {
                         if (isLoading) {
-                             CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
                         } else {
                             Icon(Icons.Default.Upload, null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
@@ -860,8 +911,5 @@ fun DocumentCard(doc: DocumentItem, isLoading: Boolean = false, onUpload: () -> 
 }
 
 data class DocumentItem(
-    val id: String,
-    val name: String,
-    val status: String,
-    val comment: String = ""
+    val id: String, val name: String, val status: String, val comment: String = ""
 )

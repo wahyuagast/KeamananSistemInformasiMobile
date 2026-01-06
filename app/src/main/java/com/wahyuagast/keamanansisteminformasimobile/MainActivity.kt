@@ -1,43 +1,57 @@
 package com.wahyuagast.keamanansisteminformasimobile
 
-import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.LoginScreen
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.RegisterScreen
-import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.*
-import com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin.AdminDashboardScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin.AdminMahasiswaScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin.AdminProfileScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin.AdminRegistrationListScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin.AdminRegistrationScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin.AdminSuratScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.MahasiswaDashboardScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.MonevScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.PelaksanaanScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.PendaftaranScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.ProfileScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.SuratScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.UjianScreen
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.KeamananSistemInformasiMobileTheme
-import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
 
 class MainActivity : ComponentActivity() {
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient.initialize(applicationContext)
+        com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient.initialize(
+            applicationContext
+        )
 
         setContent {
             val navController = rememberNavController()
 
             KeamananSistemInformasiMobileTheme {
-                val mainViewModel: com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                val mainViewModel: com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MainViewModel =
+                    androidx.lifecycle.viewmodel.compose.viewModel()
                 val sessionState by mainViewModel.sessionState.collectAsState()
 
                 // Decide start destination based on session state, but initially show splash
                 // Actually, NavHost needs a fixed startDestination string. 
                 // We use "splash" as start.
-                
+
                 NavHost(navController = navController, startDestination = "splash") {
-                    
+
                     composable("splash") {
                         // Observe state and navigate
                         LaunchedEffect(sessionState) {
@@ -53,12 +67,15 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 }
+
                                 is com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.SessionState.Unauthenticated -> {
                                     navController.navigate("login") {
                                         popUpTo("splash") { inclusive = true }
                                     }
                                 }
-                                else -> { /* Loading */ }
+
+                                else -> { /* Loading */
+                                }
                             }
                         }
 
@@ -120,29 +137,29 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                    
+
                     composable("profile") {
                         ProfileScreen(
                             onBack = { navController.popBackStack() }
                         )
                     }
-                    
+
                     composable("surat") {
                         SuratScreen(onBack = { navController.popBackStack() })
                     }
-                    
+
                     composable("pendaftaran") {
                         PendaftaranScreen(onBack = { navController.popBackStack() })
                     }
-                    
+
                     composable("pelaksanaan") {
                         PelaksanaanScreen(onBack = { navController.popBackStack() })
                     }
-                    
+
                     composable("monev") {
                         MonevScreen(onBack = { navController.popBackStack() })
                     }
-                    
+
                     composable("ujian") {
                         UjianScreen(onBack = { navController.popBackStack() })
                     }
@@ -158,15 +175,15 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                    
+
                     composable("admin-surat") {
                         AdminSuratScreen(onBack = { navController.popBackStack() })
                     }
-                    
+
                     composable("admin-mahasiswa") {
                         AdminMahasiswaScreen(onBack = { navController.popBackStack() })
                     }
-                    
+
                     composable("admin-registration-list") {
                         AdminRegistrationListScreen(
                             onBack = { navController.popBackStack() },
@@ -178,7 +195,9 @@ class MainActivity : ComponentActivity() {
 
                     composable("admin-registration/{id}") { backStackEntry ->
                         val id = backStackEntry.arguments?.getString("id")?.toIntOrNull() ?: 0
-                        AdminRegistrationScreen(registrationId = id, onBack = { navController.popBackStack() })
+                        AdminRegistrationScreen(
+                            registrationId = id,
+                            onBack = { navController.popBackStack() })
                     }
 
                     composable("admin-profile") {

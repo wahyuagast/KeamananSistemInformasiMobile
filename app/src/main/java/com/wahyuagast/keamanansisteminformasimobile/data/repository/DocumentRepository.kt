@@ -2,19 +2,19 @@ package com.wahyuagast.keamanansisteminformasimobile.data.repository
 
 import android.content.Context
 import com.wahyuagast.keamanansisteminformasimobile.data.model.AdminActionRequest
+import com.wahyuagast.keamanansisteminformasimobile.data.model.AwardeeDto
+import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentDto
 import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreRequest
 import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentTypeResponse
-import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentDto
-import com.wahyuagast.keamanansisteminformasimobile.data.model.AwardeeDto
 import com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterDto
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
-import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -75,54 +75,61 @@ class DocumentRepository(context: Context? = null) {
         }
     }
 
-    suspend fun submitDocumentRequest(documentTypeId: Int, description: String): Resource<DocumentStoreResponse> {
+    suspend fun submitDocumentRequest(
+        documentTypeId: Int,
+        description: String
+    ): Resource<DocumentStoreResponse> {
         return try {
-             val request = DocumentStoreRequest(documentTypeId, description)
-             val response = apiService.submitDocumentRequest(request)
-             if (response.isSuccessful && response.body() != null) {
-                 Resource.Success(response.body()!!)
-             } else {
-                 val errorBody = response.errorBody()?.string()
-                 val parsedError = try {
-                     if (errorBody != null) {
+            val request = DocumentStoreRequest(documentTypeId, description)
+            val response = apiService.submitDocumentRequest(request)
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val parsedError = try {
+                    if (errorBody != null) {
                         val json = Json { ignoreUnknownKeys = true }
                         json.decodeFromString<DocumentStoreResponse>(errorBody)
-                     } else null
-                 } catch (_: Exception) {
-                     null
-                 }
+                    } else null
+                } catch (_: Exception) {
+                    null
+                }
 
-                 val errorMessage = parsedError?.message ?: response.message()
-                 Resource.Error(errorMessage)
-             }
+                val errorMessage = parsedError?.message ?: response.message()
+                Resource.Error(errorMessage)
+            }
         } catch (_: Exception) {
             Resource.Error("An unknown error occurred")
         }
     }
 
-    suspend fun uploadDocument(file: java.io.File, documentTypeId: Int): Resource<DocumentStoreResponse> {
+    suspend fun uploadDocument(
+        file: java.io.File,
+        documentTypeId: Int
+    ): Resource<DocumentStoreResponse> {
         return try {
             val requestFile = file.asRequestBody("application/pdf".toMediaTypeOrNull())
             val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
-            val typeIdBody = documentTypeId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+            val typeIdBody =
+                documentTypeId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
 
             val response = apiService.uploadRegistrationDocument(body, typeIdBody)
-            
+
             if (response.isSuccessful && response.body() != null) {
                 Resource.Success(response.body()!!)
             } else {
-                 val errorBody = response.errorBody()?.string()
-                 val parsedError = try {
-                     if (errorBody != null) {
+                val errorBody = response.errorBody()?.string()
+                val parsedError = try {
+                    if (errorBody != null) {
                         val json = Json { ignoreUnknownKeys = true }
                         json.decodeFromString<DocumentStoreResponse>(errorBody)
-                     } else null
-                 } catch (_: Exception) {
-                     null
-                 }
+                    } else null
+                } catch (_: Exception) {
+                    null
+                }
 
-                 val errorMessage = parsedError?.message ?: response.message()
-                 Resource.Error(errorMessage)
+                val errorMessage = parsedError?.message ?: response.message()
+                Resource.Error(errorMessage)
             }
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Unknown error")
@@ -135,7 +142,8 @@ class DocumentRepository(context: Context? = null) {
             val noteBody = comment.toRequestBody("text/plain".toMediaTypeOrNull())
             // Assuming PDF is common, or generic octet-stream
             val requestFile = file.asRequestBody("application/pdf".toMediaTypeOrNull())
-            val docPart = okhttp3.MultipartBody.Part.createFormData("document", file.name, requestFile)
+            val docPart =
+                okhttp3.MultipartBody.Part.createFormData("document", file.name, requestFile)
 
             val resp = apiService.approveDocument(documentId, noteBody, docPart)
             val success = resp.isSuccessful
@@ -143,7 +151,12 @@ class DocumentRepository(context: Context? = null) {
                 // enqueue audit
                 auditRepo?.let {
                     CoroutineScope(Dispatchers.IO).launch {
-                        it.enqueueEvent(null, "DOCUMENT_APPROVE", documentId.toString(), mapOf("comment" to comment))
+                        it.enqueueEvent(
+                            null,
+                            "DOCUMENT_APPROVE",
+                            documentId.toString(),
+                            mapOf("comment" to comment)
+                        )
                     }
                 }
             }
@@ -162,7 +175,12 @@ class DocumentRepository(context: Context? = null) {
             if (success) {
                 auditRepo?.let {
                     CoroutineScope(Dispatchers.IO).launch {
-                        it.enqueueEvent(null, "DOCUMENT_REJECT", documentId.toString(), mapOf("comment" to (comment ?: "")))
+                        it.enqueueEvent(
+                            null,
+                            "DOCUMENT_REJECT",
+                            documentId.toString(),
+                            mapOf("comment" to (comment ?: ""))
+                        )
                     }
                 }
             }
@@ -185,7 +203,16 @@ class DocumentRepository(context: Context? = null) {
         return try {
             val r = apiService.approveAwardeeRegister(id)
             return if (r.isSuccessful) {
-                auditRepo?.let { CoroutineScope(Dispatchers.IO).launch { it.enqueueEvent(null, "REGISTER_APPROVE", id.toString(), emptyMap()) } }
+                auditRepo?.let {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        it.enqueueEvent(
+                            null,
+                            "REGISTER_APPROVE",
+                            id.toString(),
+                            emptyMap()
+                        )
+                    }
+                }
                 r.body()?.register
             } else {
                 null
@@ -199,7 +226,16 @@ class DocumentRepository(context: Context? = null) {
         return try {
             val r = apiService.rejectAwardeeRegister(id)
             return if (r.isSuccessful) {
-                auditRepo?.let { CoroutineScope(Dispatchers.IO).launch { it.enqueueEvent(null, "REGISTER_REJECT", id.toString(), emptyMap()) } }
+                auditRepo?.let {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        it.enqueueEvent(
+                            null,
+                            "REGISTER_REJECT",
+                            id.toString(),
+                            emptyMap()
+                        )
+                    }
+                }
                 r.body()?.register
             } else {
                 null

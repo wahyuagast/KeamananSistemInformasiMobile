@@ -24,7 +24,7 @@ data class AuditLogEntity(
     val resourceId: String?,
 
     @ColumnInfo(name = "details")
-    val details: String, // JSON string
+    val details: String,
 
     @ColumnInfo(name = "severity")
     val severity: String = "INFO",

@@ -20,7 +20,9 @@ class AdminProfileViewModel(application: Application) : AndroidViewModel(applica
     var profileState by mutableStateOf<Resource<ProfileResponse>>(Resource.Loading)
         private set
 
-    var updateState by mutableStateOf<Resource<com.wahyuagast.keamanansisteminformasimobile.data.model.UpdateProfileResponse>?>(null)
+    var updateState by mutableStateOf<Resource<com.wahyuagast.keamanansisteminformasimobile.data.model.UpdateProfileResponse>?>(
+        null
+    )
         private set
 
     fun loadProfile() {
@@ -31,7 +33,7 @@ class AdminProfileViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun updateProfile(
-        email: String, username: String, nim: String, degree: String, 
+        email: String, username: String, nim: String, degree: String,
         phoneNumber: String, studyProgramId: String, year: String, fullname: String,
         imageFile: java.io.File?
     ) {

@@ -101,7 +101,7 @@ data class RegistrationStatusResponse(
     val documents: List<DocumentDto> = emptyList()
 )
 
-// Keep older placeholder form models (minimal)
+// Keep older placeholder form models
 @Serializable
 data class RegistrationFormRequest(
     val fullname: String,

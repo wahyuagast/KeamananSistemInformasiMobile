@@ -1,26 +1,58 @@
 package com.wahyuagast.keamanansisteminformasimobile.ui.screens.student
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import com.wahyuagast.keamanansisteminformasimobile.ui.components.PrimaryButton
-import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBackground
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBlack
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomDanger
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomSuccess
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomWarning
 
 @Composable
 fun SuratScreen(
@@ -28,7 +60,7 @@ fun SuratScreen(
     viewModel: com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.SuratViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     var showForm by remember { mutableStateOf(false) }
-    
+
     // Initial Load
     LaunchedEffect(Unit) {
         viewModel.loadDocuments()
@@ -44,9 +76,17 @@ fun SuratScreen(
         if (submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success) {
             showForm = false
             viewModel.resetSubmissionState()
-            android.widget.Toast.makeText(context, "Pengajuan berhasil!", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(
+                context,
+                "Pengajuan berhasil!",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         } else if (submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Error) {
-             android.widget.Toast.makeText(context, submissionState.message, android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(
+                context,
+                submissionState.message,
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -73,14 +113,14 @@ fun SuratScreen(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.width(8.dp))
 
                     // Add Button
                     IconButton(
-                        onClick = { 
+                        onClick = {
                             viewModel.loadDocumentTypes()
-                            showForm = true 
+                            showForm = true
                         },
                         modifier = Modifier
                             .size(36.dp)
@@ -104,41 +144,62 @@ fun SuratScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                 when (documentListState) {
+                when (documentListState) {
                     is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Loading -> {
-                        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CustomPrimary) }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                            contentAlignment = Alignment.Center
+                        ) { CircularProgressIndicator(color = CustomPrimary) }
                     }
+
                     is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success -> {
                         val documents = documentListState.data.documents
                         if (documents.isEmpty()) {
-                             Box(modifier = Modifier.fillMaxSize().height(400.dp), contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .height(400.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Text("Belum ada surat diajukan", color = CustomGray)
-                             }
+                            }
                         } else {
                             documents.forEach { doc ->
                                 SuratCard(doc)
                             }
                         }
                     }
+
                     is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Error -> {
-                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                 Text("Gagal memuat surat: ${documentListState.message}", color = CustomDanger)
-                                 Button(onClick = { viewModel.loadDocuments() }) { Text("Coba Lagi") }
-                             }
-                         }
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    "Gagal memuat surat: ${documentListState.message}",
+                                    color = CustomDanger
+                                )
+                                Button(onClick = { viewModel.loadDocuments() }) { Text("Coba Lagi") }
+                            }
+                        }
                     }
 
-                     else -> {}
-                 }
+                    else -> {}
+                }
             }
         }
-        
+
         // Modal / Overlay for Form
         if (showForm) {
-            val types = if (documentTypesState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success) documentTypesState.data.documentTypes else emptyList()
-            val isSubmitting = submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Loading
-            val errorMessage = if (submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Error) submissionState.message else null
+            val types =
+                if (documentTypesState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success) documentTypesState.data.documentTypes else emptyList()
+            val isSubmitting =
+                submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Loading
+            val errorMessage =
+                if (submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Error) submissionState.message else null
 
             com.wahyuagast.keamanansisteminformasimobile.ui.components.PengajuanSuratDialog(
                 documentTypes = types,
@@ -182,15 +243,27 @@ fun SuratCard(doc: com.wahyuagast.keamanansisteminformasimobile.data.model.Docum
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(text = doc.name ?: "Dokumen", style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
-                    val date = if (doc.createdAt != null && doc.createdAt.length >= 10) doc.createdAt.substring(0, 10) else "-"
-                    Text(text = date, style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                    Text(
+                        text = doc.name ?: "Dokumen",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = CustomBlack
+                    )
+                    val date =
+                        if (doc.createdAt != null && doc.createdAt.length >= 10) doc.createdAt.substring(
+                            0,
+                            10
+                        ) else "-"
+                    Text(
+                        text = date,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CustomGray
+                    )
                 }
             }
-            
+
             StatusBadge(status = doc.status ?: "Unknown")
         }
-        
+
         if (doc.description != null && doc.description.isNotEmpty()) {
             Spacer(modifier = Modifier.height(12.dp))
             Box(
@@ -200,22 +273,36 @@ fun SuratCard(doc: com.wahyuagast.keamanansisteminformasimobile.data.model.Docum
                     .padding(12.dp)
             ) {
                 Column {
-                    Text(text = "Keterangan:", style = MaterialTheme.typography.bodySmall, color = CustomGray)
-                    Text(text = doc.description, style = MaterialTheme.typography.bodySmall, color = CustomBlack)
+                    Text(
+                        text = "Keterangan:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CustomGray
+                    )
+                    Text(
+                        text = doc.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CustomBlack
+                    )
                 }
             }
         }
-        
+
         if (doc.status == "approved" && !doc.filePath.isNullOrEmpty()) {
             Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = {},
-                modifier = Modifier.fillMaxWidth().height(40.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = CustomPrimary)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.Download,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Unduh Surat", style = MaterialTheme.typography.bodySmall)
                 }
@@ -232,16 +319,25 @@ fun StatusBadge(status: String) {
         "rejected" -> Triple(CustomDanger, "Ditolak", Icons.Default.Cancel)
         else -> Triple(CustomGray, status, Icons.Default.Info)
     }
-    
+
     Row(
         modifier = Modifier
             .background(color.copy(alpha = 0.1f), CircleShape)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(12.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(12.dp)
+        )
         Spacer(modifier = Modifier.width(4.dp))
-        Text(text = text, color = color, style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp))
+        Text(
+            text = text,
+            color = color,
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp)
+        )
     }
 }
 
@@ -259,36 +355,48 @@ fun CommonHeader(title: String, onBack: () -> Unit, action: @Composable () -> Un
             .statusBarsPadding()
             .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
+        // Three-slot header: left fixed-width area, center weight for title (centered), right fixed-width area
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(CustomBackground, CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ChevronLeft,
-                    contentDescription = "Back",
-                    tint = CustomPrimary,
-                    modifier = Modifier.size(20.dp)
+            // Left slot - keep a stable width so center text can be centered
+            Box(modifier = Modifier.width(96.dp), contentAlignment = Alignment.CenterStart) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(CustomBackground, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronLeft,
+                        contentDescription = "Back",
+                        tint = CustomPrimary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            // Center slot - title is centered within available space
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = CustomBlack
                 )
             }
-            
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = CustomBlack
-            )
-            
-            Row {
+
+            // Right slot - reserve same width so title stays centered even with actions
+            Box(modifier = Modifier.width(96.dp), contentAlignment = Alignment.CenterEnd) {
                 action()
             }
         }
     }
-    Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color(0xFFC6C6C8)))
+    Spacer(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(Color(0xFFC6C6C8))
+    )
 }

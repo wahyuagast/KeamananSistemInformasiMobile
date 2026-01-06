@@ -15,7 +15,6 @@ data class UserProfile(
     val email: String,
     @SerialName("role_id") val roleId: Int,
     @SerialName("created_at") val createdAt: String,
-    // Add other fields from User as needed, using User class or duplicate specific for Profile if different
     val awardee: Awardee? = null
 )
 

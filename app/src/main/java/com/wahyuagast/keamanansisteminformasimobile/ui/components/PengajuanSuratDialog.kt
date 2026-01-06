@@ -2,17 +2,42 @@
 
 package com.wahyuagast.keamanansisteminformasimobile.ui.components
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentType
-import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
 
 @Composable
 fun PengajuanSuratDialog(
@@ -30,7 +55,9 @@ fun PengajuanSuratDialog(
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -51,10 +78,17 @@ fun PengajuanSuratDialog(
                         value = selectedType?.name ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Pilih Jenis Surat", style = MaterialTheme.typography.bodyMedium) },
+                        label = {
+                            Text(
+                                "Pilih Jenis Surat",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth(),
-                         colors = OutlinedTextFieldDefaults.colors(
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = CustomPrimary,
                             focusedLabelColor = CustomPrimary
                         )
@@ -65,7 +99,12 @@ fun PengajuanSuratDialog(
                     ) {
                         documentTypes.forEach { type ->
                             DropdownMenuItem(
-                                text = { Text(type.name, style = MaterialTheme.typography.bodyMedium) },
+                                text = {
+                                    Text(
+                                        type.name,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                },
                                 onClick = {
                                     selectedType = type
                                     showDropdown = false
@@ -81,11 +120,16 @@ fun PengajuanSuratDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Keterangan/Deskripsi", style = MaterialTheme.typography.bodyMedium) },
+                    label = {
+                        Text(
+                            "Keterangan/Deskripsi",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     maxLines = 5,
-                     colors = OutlinedTextFieldDefaults.colors(
+                    colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = CustomPrimary,
                         focusedLabelColor = CustomPrimary
                     )
@@ -98,7 +142,11 @@ fun PengajuanSuratDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Batal", color = CustomGray, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Batal",
+                            color = CustomGray,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(

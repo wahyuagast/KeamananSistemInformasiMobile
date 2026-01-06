@@ -73,7 +73,10 @@ class AuthRepository(private val tokenManager: TokenManager) {
     }
 
     // Register method
-    suspend fun register(request: RegisterRequest, token: String? = null): Resource<AuthRegisterResponse> {
+    suspend fun register(
+        request: RegisterRequest,
+        token: String? = null
+    ): Resource<AuthRegisterResponse> {
         return try {
             val resp = apiService.register(request, token)
             if (resp.isSuccessful && resp.body() != null) {

@@ -1,5 +1,6 @@
 package com.wahyuagast.keamanansisteminformasimobile.ui.screens
 
+import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,9 +47,9 @@ import com.wahyuagast.keamanansisteminformasimobile.ui.utils.ValidationUtils
 import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.LoginViewModel
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.coroutines.delay
-import kotlin.math.max
 import kotlin.math.min
 
+@SuppressLint("DefaultLocale")
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
@@ -84,12 +85,12 @@ fun LoginScreen(
             while (lockoutEndTime > System.currentTimeMillis()) {
                 val diff = lockoutEndTime - System.currentTimeMillis()
                 // ceiling division to show "5s" (for 4.1s) instead of "4s"
-                remainingSeconds = (diff + 999) / 1000L 
+                remainingSeconds = (diff + 999) / 1000L
                 delay(1000)
             }
             // When lockout expires:
             remainingSeconds = 0L
-            lockoutEndTime = 0L 
+            lockoutEndTime = 0L
         } else {
             remainingSeconds = 0L
         }
@@ -115,7 +116,6 @@ fun LoginScreen(
                 }
 
                 // Increment failed attempt counter and apply lockout if threshold reached.
-                // NOTE: This is client-side only — always enforce rate limiting / lockouts on server.
                 failedAttempts++
                 if (failedAttempts >= allowedThreshold) {
                     // exponent grows with how many times the user exceeded the threshold
@@ -151,7 +151,6 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Restore original header: circle + School icon
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -226,7 +225,7 @@ fun LoginScreen(
         }
 
         // Stronger warning when user is one attempt away from lockout
-        if (!isLocked && failedAttempts >= (allowedThreshold - 1) && failedAttempts > 0) {
+        if (!isLocked && failedAttempts >= (allowedThreshold - 1)) {
             Text(
                 text = "Peringatan: Satu percobaan lagi akan mengunci akun sementara.",
                 color = MaterialTheme.colorScheme.error,
@@ -240,7 +239,11 @@ fun LoginScreen(
         if (isLocked) {
             val minutes = remainingSeconds / 60
             val seconds = remainingSeconds % 60
-            val timeText = if (minutes > 0) String.format("%02dm %02ds", minutes, seconds) else String.format("%02ds", seconds)
+            val timeText = if (minutes > 0) String.format(
+                "%02dm %02ds",
+                minutes,
+                seconds
+            ) else String.format("%02ds", seconds)
 
             Text(
                 text = "Akun terkunci sementara. Coba lagi dalam $timeText",

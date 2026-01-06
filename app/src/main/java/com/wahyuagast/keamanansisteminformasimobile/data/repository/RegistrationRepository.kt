@@ -4,8 +4,8 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormR
 import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationStatusResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
-import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
+import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -24,34 +24,41 @@ class RegistrationRepository {
 
                 // Fetch Mitras
                 val mitrasResp = api.getMitras()
-                val mitrasList = if (mitrasResp.isSuccessful) mitrasResp.body()?.mitra ?: emptyList() else emptyList()
+                val mitrasList = if (mitrasResp.isSuccessful) mitrasResp.body()?.mitra
+                    ?: emptyList() else emptyList()
 
-                // Fetch Periods (Guessing endpoint)
-                val periodsResp = try { api.getPeriods() } catch(_ : Exception) { null }
-                val periodsList = if (periodsResp?.isSuccessful == true) periodsResp.body()?.periods ?: emptyList() else emptyList()
+                val periodsResp = try {
+                    api.getPeriods()
+                } catch (_: Exception) {
+                    null
+                }
+                val periodsList = if (periodsResp?.isSuccessful == true) periodsResp.body()?.periods
+                    ?: emptyList() else emptyList()
 
                 // Return "Not Registered" state with available resources
-                Resource.Success(RegistrationStatusResponse(
-                    statusRegistrasi = "belum_terdaftar",
-                    mitras = mitrasList.map { 
-                        // Map Mitra (from MitraResponse) to MitraDto (for RegistrationStatusResponse)
-                        com.wahyuagast.keamanansisteminformasimobile.data.model.MitraDto(
-                            id = it.id,
-                            partnerName = it.partnerName,
-                            address = it.address,
-                            description = it.description,
-                            email = it.email,
-                            phoneNumber = it.phoneNumber,
-                            websiteAddress = it.websiteAddress,
-                            imageUrl = it.imageUrl,
-                            status = it.status,
-                            type = it.type,
-                            whatsappNumber = it.whatsappNumber
-                        )
-                    },
-                    periods = periodsList,
-                    message = "Silahkan lakukan pendaftaran"
-                ))
+                Resource.Success(
+                    RegistrationStatusResponse(
+                        statusRegistrasi = "belum_terdaftar",
+                        mitras = mitrasList.map {
+                            // Map Mitra (from MitraResponse) to MitraDto (for RegistrationStatusResponse)
+                            com.wahyuagast.keamanansisteminformasimobile.data.model.MitraDto(
+                                id = it.id,
+                                partnerName = it.partnerName,
+                                address = it.address,
+                                description = it.description,
+                                email = it.email,
+                                phoneNumber = it.phoneNumber,
+                                websiteAddress = it.websiteAddress,
+                                imageUrl = it.imageUrl,
+                                status = it.status,
+                                type = it.type,
+                                whatsappNumber = it.whatsappNumber
+                            )
+                        },
+                        periods = periodsList,
+                        message = "Silahkan lakukan pendaftaran"
+                    )
+                )
             } else {
                 Resource.Error(resp.message())
             }
@@ -94,7 +101,8 @@ class RegistrationRepository {
                     try {
                         // We don't have direct access to context here; audit enqueue is usually done in ViewModel.
                         // If desired, move enqueue to the caller (ViewModel) where context is available.
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                    }
                 }
                 Resource.Success(resp.body()!!)
             } else {
@@ -115,7 +123,8 @@ class RegistrationRepository {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         // no-op here by default
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                    }
                 }
                 Resource.Error(errorMessage)
             }

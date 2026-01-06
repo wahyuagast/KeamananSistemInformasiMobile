@@ -14,10 +14,10 @@ import com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepo
 import com.wahyuagast.keamanansisteminformasimobile.data.repository.MitraRepository
 import com.wahyuagast.keamanansisteminformasimobile.data.repository.ProfileRepository
 import com.wahyuagast.keamanansisteminformasimobile.data.repository.RegistrationRepository
+import com.wahyuagast.keamanansisteminformasimobile.utils.InputSanitizer
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.coroutines.launch
 import java.io.File
-import com.wahyuagast.keamanansisteminformasimobile.utils.InputSanitizer
 
 class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = ProfileRepository()
@@ -86,7 +86,10 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
             val result = registrationRepository.getRegistrationStatus()
             if (result is Resource.Error) {
                 // Avoid logging raw server messages; keep generic log so debugging info isn't leaking
-                com.wahyuagast.keamanansisteminformasimobile.utils.AppLog.e("MahasiswaProfileVM", "Error loading registration status")
+                com.wahyuagast.keamanansisteminformasimobile.utils.AppLog.e(
+                    "MahasiswaProfileVM",
+                    "Error loading registration status"
+                )
             }
             registrationState = result
         }
@@ -112,8 +115,6 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
             documentSubmissionState =
                 documentRepository.submitDocumentRequest(documentTypeId, description)
             if (documentSubmissionState is Resource.Success) {
-                // Optionally reload registration status if documents are listed there,
-                // or just keep success state for UI feedback
             }
         }
     }

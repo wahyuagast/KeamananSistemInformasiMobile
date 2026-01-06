@@ -6,15 +6,43 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,7 +54,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBackground
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBlack
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
 import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel
 import com.wahyuagast.keamanansisteminformasimobile.utils.FileUtils
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
@@ -45,7 +76,11 @@ fun ProfileScreen(
     // Observe update state for Toast
     LaunchedEffect(updateState) {
         if (updateState is Resource.Success) {
-            Toast.makeText(context, updateState.data?.message ?: "Update Success", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                updateState.data?.message ?: "Update Success",
+                Toast.LENGTH_SHORT
+            ).show()
             viewModel.resetUpdateState()
         } else if (updateState is Resource.Error) {
             Toast.makeText(context, updateState.message, Toast.LENGTH_SHORT).show()
@@ -61,7 +96,7 @@ fun ProfileScreen(
 
     // Form State
     var isEditing by remember { mutableStateOf(false) }
-    
+
     var email by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var nim by remember { mutableStateOf("") }
@@ -81,10 +116,7 @@ fun ProfileScreen(
             nim = a?.nim ?: ""
             degree = a?.degree ?: ""
             phone = a?.phoneNumber ?: ""
-            // Bind ID. If we want to show text name, we'd need a map or lookup. 
-            // For now, binding ID so update works. User sees ID in text field if editable.
-            // Ideally non-editable if just ID.
-            studyProgramId = a?.studyProgramId?.toString() ?: "" 
+            studyProgramId = a?.studyProgramId?.toString() ?: ""
             year = a?.year ?: ""
             fullname = a?.fullname ?: ""
         }
@@ -123,20 +155,31 @@ fun ProfileScreen(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                
+
                 Text(
                     text = "Profil",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     color = CustomBlack
                 )
-                
+
                 TextButton(
-                    onClick = { 
+                    onClick = {
                         if (isEditing) {
                             // SAVE
-                            val file = selectedImageUri?.let { FileUtils.getFileFromUri(context, it) }
-                            viewModel.updateProfile(email, username, nim, degree, phone, studyProgramId, year, fullname, file)
+                            val file =
+                                selectedImageUri?.let { FileUtils.getFileFromUri(context, it) }
+                            viewModel.updateProfile(
+                                email,
+                                username,
+                                nim,
+                                degree,
+                                phone,
+                                studyProgramId,
+                                year,
+                                fullname,
+                                file
+                            )
                             isEditing = false
                         } else {
                             isEditing = true
@@ -151,11 +194,17 @@ fun ProfileScreen(
                 }
             }
         }
-        
-        Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color(0xFFC6C6C8)))
+
+        Spacer(modifier = Modifier
+            .height(1.dp)
+            .fillMaxWidth()
+            .background(Color(0xFFC6C6C8)))
 
         if (state is Resource.Loading && !isEditing) {
-             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CustomPrimary) }
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator(color = CustomPrimary) }
         } else {
             // Content
             Column(
@@ -170,20 +219,24 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                         // Avatar
+                        // Avatar
                         Box(
-                            modifier = Modifier.size(96.dp).background(CustomPrimary, CircleShape)
+                            modifier = Modifier
+                                .size(96.dp)
+                                .background(CustomPrimary, CircleShape)
                                 .clip(CircleShape)
                                 .clickable(enabled = isEditing) { launcher.launch("image/*") },
                             contentAlignment = Alignment.Center
                         ) {
                             if (selectedImageUri != null) {
-                                 AsyncImage(
-                                     model = selectedImageUri,
-                                     contentDescription = null,
-                                     modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                     contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                 )
+                                AsyncImage(
+                                    model = selectedImageUri,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
                             } else {
                                 Icon(
                                     imageVector = Icons.Default.Person,
@@ -213,9 +266,9 @@ fun ProfileScreen(
                             }
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(12.dp))
-                    
+
                     Text(
                         text = fullname.ifEmpty { "Nama Mahasiswa" },
                         style = MaterialTheme.typography.bodyLarge,
@@ -228,9 +281,9 @@ fun ProfileScreen(
                         color = CustomGray
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Form Card
                 Column(
                     modifier = Modifier
@@ -255,11 +308,11 @@ fun ProfileScreen(
                     )
                     Divider()
                     ProfileItem(
-                        icon = Icons.Default.Book, 
-                        label = "Program Studi ID", // Label changed to reflect it's likely an ID now
+                        icon = Icons.Default.Book,
+                        label = "Program Studi ID",
                         value = studyProgramId,
                         isEditing = false, // ID shouldn't be edited manually as text usually
-                         onValueChange = { studyProgramId = it }
+                        onValueChange = { studyProgramId = it }
                     )
                     Divider()
                     ProfileItem(
@@ -267,7 +320,7 @@ fun ProfileScreen(
                         label = "Email",
                         value = email,
                         isEditing = isEditing,
-                         onValueChange = { email = it }
+                        onValueChange = { email = it }
                     )
                     Divider()
                     ProfileItem(
@@ -275,7 +328,7 @@ fun ProfileScreen(
                         label = "Nomor Telepon",
                         value = phone,
                         isEditing = isEditing,
-                         onValueChange = { phone = it }
+                        onValueChange = { phone = it }
                     )
                 }
             }
@@ -313,8 +366,8 @@ fun ProfileItem(
             )
             if (isEditing) {
                 BasicTextFieldCompat(
-                     value = value,
-                     onValueChange = onValueChange
+                    value = value,
+                    onValueChange = onValueChange
                 )
             } else {
                 Text(
@@ -342,15 +395,15 @@ private fun BasicTextFieldCompat(value: String, onValueChange: (String) -> Unit)
     TextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth().height(48.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.Transparent,
             unfocusedContainerColor = Color.Transparent,
-            focusedIndicatorColor = Color.Transparent, 
+            focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent
         ),
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = CustomBlack)
     )
 }
-// Ensure top of screen respects status bar and avoids extra blank top padding
-// For header containers in this screen, use Modifier.statusBarsPadding() where appropriate.

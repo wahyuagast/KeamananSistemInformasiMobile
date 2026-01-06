@@ -2,22 +2,56 @@ package com.wahyuagast.keamanansisteminformasimobile.ui.screens.student
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBackground
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBlack
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomDanger
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPurple
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomSuccess
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomWarning
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
 @Composable
@@ -72,34 +106,79 @@ fun UjianScreen(
 
             if (activeTab == "draft") {
                 if (draftState is Resource.Loading) {
-                    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CustomPurple) }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator(color = CustomPurple) }
                 } else if (draftState is Resource.Success) {
                     val data = draftState.data
-                     // Mapping draft data
+                    // Mapping draft data
                     val draftDocs = listOf(
-                        DocumentItem("jurnal", "Draft Jurnal Jupita", data.draftJurnalJupita?.status ?: "empty", data.draftJurnalJupita?.comment ?: "Belum ada data"),
-                        DocumentItem("laporan", "Draft Laporan Pengabdian", data.draftLaporanPengabdian?.status ?: "empty", data.draftLaporanPengabdian?.comment ?: "Belum ada data"),
-                        DocumentItem("berita-acara", "Permohonan Berita Acara", data.permohonanBeritaAcara?.status ?: "empty", data.permohonanBeritaAcara?.comment ?: "Belum ada data")
+                        DocumentItem(
+                            "jurnal",
+                            "Draft Jurnal Jupita",
+                            data.draftJurnalJupita?.status ?: "empty",
+                            data.draftJurnalJupita?.comment ?: "Belum ada data"
+                        ),
+                        DocumentItem(
+                            "laporan",
+                            "Draft Laporan Pengabdian",
+                            data.draftLaporanPengabdian?.status ?: "empty",
+                            data.draftLaporanPengabdian?.comment ?: "Belum ada data"
+                        ),
+                        DocumentItem(
+                            "berita-acara",
+                            "Permohonan Berita Acara",
+                            data.permohonanBeritaAcara?.status ?: "empty",
+                            data.permohonanBeritaAcara?.comment ?: "Belum ada data"
+                        )
                     )
-                    
+
                     StatusCard(activeTab, primaryColor)
-                    
+
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         draftDocs.forEach { doc -> UjianDocCard(doc, primaryColor) }
                     }
                 } else if (draftState is Resource.Error) {
-                     Text("Error loading draft: ${draftState.message}", color = CustomDanger)
+                    Text("Error loading draft: ${draftState.message}", color = CustomDanger)
                 }
             } else {
                 if (finalState is Resource.Loading) {
-                     Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CustomSuccess) }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) { CircularProgressIndicator(color = CustomSuccess) }
                 } else if (finalState is Resource.Success) {
                     val data = finalState.data
                     val finalDocs = listOf(
-                        DocumentItem("revisi", "Form Revisi Penguji", data.formRevisiPenguji?.status ?: "empty", data.formRevisiPenguji?.comment ?: "Belum ada data"),
-                        DocumentItem("nilai", "Nilai Ujian PKL", data.nilaiUjianPkl?.status ?: "empty", data.nilaiUjianPkl?.comment ?: "Belum ada data"),
-                        DocumentItem("jurnal-final", "Jurnal Final", data.jurnalFinal?.status ?: "empty", data.jurnalFinal?.comment ?: "Belum ada data"),
-                        DocumentItem("laporan-final", "Laporan Akhir", data.laporanAkhir?.status ?: "empty", data.laporanAkhir?.comment ?: "Belum ada data")
+                        DocumentItem(
+                            "revisi",
+                            "Form Revisi Penguji",
+                            data.formRevisiPenguji?.status ?: "empty",
+                            data.formRevisiPenguji?.comment ?: "Belum ada data"
+                        ),
+                        DocumentItem(
+                            "nilai",
+                            "Nilai Ujian PKL",
+                            data.nilaiUjianPkl?.status ?: "empty",
+                            data.nilaiUjianPkl?.comment ?: "Belum ada data"
+                        ),
+                        DocumentItem(
+                            "jurnal-final",
+                            "Jurnal Final",
+                            data.jurnalFinal?.status ?: "empty",
+                            data.jurnalFinal?.comment ?: "Belum ada data"
+                        ),
+                        DocumentItem(
+                            "laporan-final",
+                            "Laporan Akhir",
+                            data.laporanAkhir?.status ?: "empty",
+                            data.laporanAkhir?.comment ?: "Belum ada data"
+                        )
                     )
 
                     StatusCard(activeTab, primaryColor)
@@ -113,22 +192,40 @@ fun UjianScreen(
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Nilai Akhir PKL", color = CustomBlack, style = MaterialTheme.typography.bodyMedium)
-                            
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                "Nilai Akhir PKL",
+                                color = CustomBlack,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+
                             val nilaiAkhir = data.nilaiAkhir ?: "Belum ada data"
                             val nilaiHuruf = data.nilaiHuruf ?: "-"
-                                
+
                             if (data.nilaiAkhir != null) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Box(
-                                    modifier = Modifier.size(80.dp).background(CustomSuccess, CircleShape),
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .background(CustomSuccess, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(nilaiHuruf, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        nilaiHuruf,
+                                        color = Color.White,
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text("Nilai Akhir: $nilaiAkhir", color = CustomGray, style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    "Nilai Akhir: $nilaiAkhir",
+                                    color = CustomGray,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Button(
                                     onClick = {},
@@ -136,13 +233,21 @@ fun UjianScreen(
                                     colors = ButtonDefaults.buttonColors(containerColor = CustomPrimary),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
-                                    Icon(Icons.Default.Download, null, modifier = Modifier.size(16.dp))
+                                    Icon(
+                                        Icons.Default.Download,
+                                        null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text("Unduh Nilai Akhir")
                                 }
                             } else {
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Text("Nilai belum keluar", color = CustomGray, style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    "Nilai belum keluar",
+                                    color = CustomGray,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
                     }
@@ -160,21 +265,38 @@ fun StatusCard(activeTab: String, primaryColor: Color) {
         colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.1f)),
         border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.2f)),
         shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             val title = if (activeTab == "draft") "Status: Persiapan Ujian" else "Ujian Selesai"
-            val desc = if (activeTab == "draft") "Upload semua berkas draft untuk mengajukan ujian PKL" else "Upload berkas final dan revisi dari penguji"
-            
-            Text(text = title, color = CustomBlack, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            val desc =
+                if (activeTab == "draft") "Upload semua berkas draft untuk mengajukan ujian PKL" else "Upload berkas final dan revisi dari penguji"
+
+            Text(
+                text = title,
+                color = CustomBlack,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
             Text(text = desc, color = CustomGray, style = MaterialTheme.typography.bodySmall)
-            
+
             if (activeTab == "final") {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Download, null, tint = CustomPrimary, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.Download,
+                        null,
+                        tint = CustomPrimary,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Unduh Berita Acara Ujian", color = CustomPrimary, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "Unduh Berita Acara Ujian",
+                        color = CustomPrimary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }
@@ -187,7 +309,10 @@ fun RowScope.TabButton(text: String, isActive: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .weight(1f)
             .height(40.dp)
-            .background(if (isActive) CustomPrimary else Color.Transparent, RoundedCornerShape(12.dp))
+            .background(
+                if (isActive) CustomPrimary else Color.Transparent,
+                RoundedCornerShape(12.dp)
+            )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -229,17 +354,36 @@ fun UjianDocCard(doc: DocumentItem, color: Color) {
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(text = doc.name, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
-                        Text(text = "PDF, max 10MB", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        Text(
+                            text = doc.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = CustomBlack
+                        )
+                        Text(
+                            text = "PDF, max 10MB",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomGray
+                        )
                     }
                 }
-                
+
                 when (doc.status) {
-                    "uploaded" -> Icon(Icons.Default.CheckCircle, null, tint = CustomSuccess, modifier = Modifier.size(20.dp))
-                    "pending" -> Icon(Icons.Default.Schedule, null, tint = CustomWarning, modifier = Modifier.size(20.dp))
+                    "uploaded" -> Icon(
+                        Icons.Default.CheckCircle,
+                        null,
+                        tint = CustomSuccess,
+                        modifier = Modifier.size(20.dp)
+                    )
+
+                    "pending" -> Icon(
+                        Icons.Default.Schedule,
+                        null,
+                        tint = CustomWarning,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
-            
+
             if (doc.comment.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Box(
@@ -248,12 +392,16 @@ fun UjianDocCard(doc: DocumentItem, color: Color) {
                         .background(CustomBackground, RoundedCornerShape(12.dp))
                         .padding(12.dp)
                 ) {
-                   Text(text = doc.comment, style = MaterialTheme.typography.bodySmall, color = CustomBlack)
+                    Text(
+                        text = doc.comment,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CustomBlack
+                    )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             when (doc.status) {
                 "empty" -> {
                     Button(
@@ -267,13 +415,17 @@ fun UjianDocCard(doc: DocumentItem, color: Color) {
                         Text("Upload Dokumen")
                     }
                 }
+
                 "uploaded" -> {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
                             onClick = { },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CustomBackground, contentColor = CustomBlack)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = CustomBackground,
+                                contentColor = CustomBlack
+                            )
                         ) {
                             Text("Lihat")
                         }

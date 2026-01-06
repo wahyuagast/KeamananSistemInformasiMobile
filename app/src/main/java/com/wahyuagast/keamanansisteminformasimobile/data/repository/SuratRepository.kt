@@ -1,6 +1,9 @@
 package com.wahyuagast.keamanansisteminformasimobile.data.repository
 
-import com.wahyuagast.keamanansisteminformasimobile.data.model.*
+import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentListResponse
+import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreRequest
+import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse
+import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentTypeResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 

@@ -1,36 +1,77 @@
 package com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin
 
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentDto
 import com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.CommonHeader
-import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBackground
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBlack
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomDanger
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomSuccess
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomWarning
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AdminSuratScreen(
     onBack: () -> Unit,
@@ -39,7 +80,7 @@ fun AdminSuratScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repo = remember { DocumentRepository() }
-    
+
     // State
     var suratList by remember { mutableStateOf<List<DocumentDto>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
@@ -120,7 +161,12 @@ fun AdminSuratScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (filteredList.isEmpty()) {
-                        Text("Tidak ada dokumen.", modifier = Modifier.align(Alignment.CenterHorizontally), color = CustomGray, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Tidak ada dokumen.",
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            color = CustomGray,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     } else {
                         filteredList.forEach { surat ->
                             AdminSuratCard(surat) {
@@ -144,7 +190,8 @@ fun AdminSuratScreen(
                         Toast.makeText(context, "Dokumen disetujui", Toast.LENGTH_SHORT).show()
                         refreshData()
                     } else {
-                        Toast.makeText(context, "Gagal menyetujui dokumen", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Gagal menyetujui dokumen", Toast.LENGTH_SHORT)
+                            .show()
                     }
                     selectedSurat = null
                 }
@@ -165,6 +212,7 @@ fun AdminSuratScreen(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AdminSuratCard(surat: DocumentDto, onClick: () -> Unit) {
     Card(
@@ -177,9 +225,13 @@ fun AdminSuratCard(surat: DocumentDto, onClick: () -> Unit) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically // center so status keeps its size
             ) {
-                Row(verticalAlignment = Alignment.Top) {
+                // Left part: icon + text. Give it weight so the status on the right keeps its intrinsic size.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -194,15 +246,30 @@ fun AdminSuratCard(surat: DocumentDto, onClick: () -> Unit) {
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         // show name if available, otherwise description
                         val title = surat.name ?: surat.description ?: "-"
-                        Text(text = title, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
-                        Text(text = "ID: ${surat.userId}", style = MaterialTheme.typography.bodySmall, color = CustomGray)
-                        Text(text = formatUploadedAt(surat.uploadedAt), style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = CustomBlack,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "ID: ${surat.userId}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomGray
+                        )
+                        Text(
+                            text = formatUploadedAt(surat.uploadedAt),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = CustomGray
+                        )
                     }
                 }
 
+                // Status label stays on the right with its intrinsic size
                 when (surat.status?.lowercase()) {
                     "pending" -> StatusLabel("Pending", CustomWarning)
                     "approved" -> StatusLabel("Approved", CustomSuccess)
@@ -238,6 +305,7 @@ fun StatusLabel(text: String, color: Color) {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AdminSuratDetailDialog(
     surat: DocumentDto,
@@ -288,9 +356,13 @@ fun AdminSuratDetailDialog(
                 DetailItem("Uploaded At", formatUploadedAt(surat.uploadedAt))
 
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Comment Field
-                Text("Komentar Admin", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                Text(
+                    "Komentar Admin",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = CustomGray
+                )
                 OutlinedTextField(
                     value = comment,
                     onValueChange = { comment = it },
@@ -307,21 +379,31 @@ fun AdminSuratDetailDialog(
                 // Appprove Section: File Selection
                 Spacer(modifier = Modifier.height(16.dp))
                 if (surat.status.equals("pending", ignoreCase = true)) {
-                    Text("File Balasan (Wajib untuk Approve)", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                    Text(
+                        "File Balasan (Wajib untuk Approve)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = CustomGray
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     Button(
                         onClick = { launcher.launch("application/pdf") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedFileUri != null) CustomSuccess.copy(alpha=0.1f) else CustomBackground,
+                            containerColor = if (selectedFileUri != null) CustomSuccess.copy(alpha = 0.1f) else CustomBackground,
                             contentColor = if (selectedFileUri != null) CustomSuccess else CustomBlack
                         ),
-                        border = if (selectedFileUri != null) androidx.compose.foundation.BorderStroke(1.dp, CustomSuccess) else null,
+                        border = if (selectedFileUri != null) androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            CustomSuccess
+                        ) else null,
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(Icons.Default.ArrowUpward, null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(selectedFileName ?: "Pilih Dokumen PDF", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            selectedFileName ?: "Pilih Dokumen PDF",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
 
@@ -330,11 +412,15 @@ fun AdminSuratDetailDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = {
-                             if (comment.isBlank()) {
-                                 Toast.makeText(context, "Note wajib diisi untuk penolakan", Toast.LENGTH_SHORT).show()
-                             } else {
+                            if (comment.isBlank()) {
+                                Toast.makeText(
+                                    context,
+                                    "Note wajib diisi untuk penolakan",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
                                 onReject(surat.id, comment)
-                             }
+                            }
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = CustomDanger),
@@ -342,25 +428,35 @@ fun AdminSuratDetailDialog(
                         enabled = surat.status.equals("pending", ignoreCase = true)
                     ) {
                         Text("Tolak", style = MaterialTheme.typography.labelLarge)
-                     }
-                     Button(
+                    }
+                    Button(
                         onClick = {
                             if (selectedFileUri != null && comment.isNotBlank()) {
                                 // Convert Uri to File
                                 try {
-                                    val inputStream = context.contentResolver.openInputStream(selectedFileUri!!)
-                                    val tempFile = File(context.cacheDir, selectedFileName ?: "temp_surat.pdf")
+                                    val inputStream =
+                                        context.contentResolver.openInputStream(selectedFileUri!!)
+                                    val tempFile =
+                                        File(context.cacheDir, selectedFileName ?: "temp_surat.pdf")
                                     val outputStream = FileOutputStream(tempFile)
                                     inputStream?.copyTo(outputStream)
                                     inputStream?.close()
                                     outputStream.close()
-                                    
+
                                     onApprove(surat.id, tempFile, comment)
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Gagal memproses file", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Gagal memproses file",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             } else {
-                                Toast.makeText(context, "Pilih file dan isi note untuk menyetujui", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Pilih file dan isi note untuk menyetujui",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -369,21 +465,24 @@ fun AdminSuratDetailDialog(
                         enabled = surat.status.equals("pending", ignoreCase = true)
                     ) {
                         Text("Setujui", style = MaterialTheme.typography.labelLarge)
-                     }
-                 }
+                    }
+                }
 
-                 Spacer(modifier = Modifier.height(8.dp))
-                  Button(
-                     onClick = onDismiss,
-                     modifier = Modifier.fillMaxWidth(),
-                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = CustomGray),
-                     shape = RoundedCornerShape(12.dp)
-                 ) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = CustomGray
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
                     Text("Tutup", style = MaterialTheme.typography.labelLarge)
-                 }
-             }
-         }
-     }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -395,6 +494,7 @@ fun DetailItem(label: String, value: String) {
 }
 
 // helper to format ISO offset datetimes gracefully
+@RequiresApi(Build.VERSION_CODES.O)
 fun formatUploadedAt(value: String?): String {
     if (value.isNullOrBlank()) return "-"
     return try {

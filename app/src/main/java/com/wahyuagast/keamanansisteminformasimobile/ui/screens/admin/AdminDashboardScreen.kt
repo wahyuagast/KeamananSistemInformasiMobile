@@ -2,24 +2,58 @@ package com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
-import com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository
 import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentDto
-import java.time.OffsetDateTime
+import com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBackground
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomBlack
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomDanger
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomSuccess
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomWarning
 
 @Suppress("UNUSED_PARAMETER")
 @Composable
@@ -104,7 +138,12 @@ fun AdminDashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color(0xFFC6C6C8)))
+        Spacer(
+            modifier = Modifier
+                .height(1.dp)
+                .fillMaxWidth()
+                .background(Color(0xFFC6C6C8))
+        )
 
         Column(
             modifier = Modifier
@@ -113,7 +152,10 @@ fun AdminDashboardScreen(
                 .padding(16.dp)
         ) {
             // Stats Grid (dynamic values)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 AdminStatCard(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Schedule,
@@ -130,7 +172,10 @@ fun AdminDashboardScreen(
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 AdminStatCard(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Cancel,
@@ -157,12 +202,23 @@ fun AdminDashboardScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Aktivitas Terbaru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Icon(Icons.Default.Notifications, null, tint = CustomWarning, modifier = Modifier.size(20.dp))
+                        Text(
+                            "Aktivitas Terbaru",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Icon(
+                            Icons.Default.Notifications,
+                            null,
+                            tint = CustomWarning,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
 
                     if (isLoading) {
@@ -186,7 +242,12 @@ fun AdminDashboardScreen(
                                 else -> CustomPrimary
                             }
 
-                            ActivityItem(icon = icon, color = color, title = title, subtitle = "${doc.userId} • $time")
+                            ActivityItem(
+                                icon = icon,
+                                color = color,
+                                title = title,
+                                subtitle = "${doc.userId} • $time"
+                            )
                             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                         }
                     }
@@ -196,7 +257,10 @@ fun AdminDashboardScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Main Menu Grid
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 AdminMenuCard(
                     modifier = Modifier.weight(1f),
                     icon = Icons.Default.Description,
@@ -216,10 +280,13 @@ fun AdminDashboardScreen(
             }
             Spacer(modifier = Modifier.height(12.dp))
             // Second Menu Row
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 AdminMenuCard(
                     modifier = Modifier.weight(1f),
-                    icon = Icons.Default.List,
+                    icon = Icons.AutoMirrored.Filled.List,
                     color = CustomWarning,
                     title = "Data Pendaftaran",
                     subtitle = awardeeCount?.let { "$it data" } ?: "Memuat...",
@@ -236,15 +303,24 @@ fun relativeTimeAgo(timeStr: String?): String {
     if (timeStr.isNullOrBlank()) return "Unknown time"
 
     // Try to parse common ISO formats and fallback to simple substring
-    val patterns = listOf("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ssXXX", "yyyy-MM-dd")
+    val patterns = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        "yyyy-MM-dd"
+    )
     var parsed: java.util.Date? = null
     for (p in patterns) {
         try {
             val sdf = java.text.SimpleDateFormat(p, java.util.Locale.getDefault())
-            if (p.contains("'Z'") || p.contains("XXX")) sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            if (p.contains("'Z'") || p.contains("XXX")) sdf.timeZone =
+                java.util.TimeZone.getTimeZone("UTC")
             val d = sdf.parse(timeStr)
-            if (d != null) { parsed = d; break }
-        } catch (_: Exception) {}
+            if (d != null) {
+                parsed = d; break
+            }
+        } catch (_: Exception) {
+        }
     }
 
     if (parsed == null) return "Invalid date"
@@ -260,7 +336,13 @@ fun relativeTimeAgo(timeStr: String?): String {
 }
 
 @Composable
-fun AdminStatCard(modifier: Modifier = Modifier, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color, value: String, label: String) {
+fun AdminStatCard(
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color,
+    value: String,
+    label: String
+) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -273,12 +355,18 @@ fun AdminStatCard(modifier: Modifier = Modifier, icon: androidx.compose.ui.graph
                 verticalAlignment = Alignment.Top
             ) {
                 Box(
-                    modifier = Modifier.size(32.dp).background(color.copy(alpha = 0.1f), CircleShape),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(color.copy(alpha = 0.1f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(icon, null, tint = color, modifier = Modifier.size(16.dp))
                 }
-                Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    value,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(label, style = MaterialTheme.typography.bodySmall, color = CustomGray)
@@ -287,10 +375,17 @@ fun AdminStatCard(modifier: Modifier = Modifier, icon: androidx.compose.ui.graph
 }
 
 @Composable
-fun ActivityItem(icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color, title: String, subtitle: String) {
+fun ActivityItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color,
+    title: String,
+    subtitle: String
+) {
     Row(verticalAlignment = Alignment.Top) {
         Box(
-            modifier = Modifier.size(32.dp).background(color, CircleShape),
+            modifier = Modifier
+                .size(32.dp)
+                .background(color, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(icon, null, tint = Color.White, modifier = Modifier.size(16.dp))
@@ -304,7 +399,14 @@ fun ActivityItem(icon: androidx.compose.ui.graphics.vector.ImageVector, color: C
 }
 
 @Composable
-fun AdminMenuCard(modifier: Modifier = Modifier, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color, title: String, subtitle: String, onClick: () -> Unit) {
+fun AdminMenuCard(
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
     Card(
         modifier = modifier.clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -312,12 +414,15 @@ fun AdminMenuCard(modifier: Modifier = Modifier, icon: androidx.compose.ui.graph
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Box(
-                modifier = Modifier.size(40.dp).background(color.copy(alpha = 0.1f), CircleShape).padding(bottom = 12.dp),
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(color.copy(alpha = 0.1f), CircleShape)
+                    .padding(bottom = 12.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
             }
-             Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = CustomGray)
         }
