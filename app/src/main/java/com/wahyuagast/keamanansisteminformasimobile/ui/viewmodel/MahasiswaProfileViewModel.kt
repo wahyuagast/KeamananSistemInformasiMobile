@@ -86,7 +86,7 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
             val result = registrationRepository.getRegistrationStatus()
             if (result is Resource.Error) {
                 // Avoid logging raw server messages; keep generic log so debugging info isn't leaking
-                android.util.Log.e("MahasiswaProfileVM", "Error loading registration status")
+                com.wahyuagast.keamanansisteminformasimobile.utils.AppLog.e("MahasiswaProfileVM", "Error loading registration status")
             }
             registrationState = result
         }

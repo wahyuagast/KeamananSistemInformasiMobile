@@ -5,7 +5,7 @@ package com.wahyuagast.keamanansisteminformasimobile.data.remote
 import android.annotation.SuppressLint
 import android.content.Context
 import android.provider.Settings
-import android.util.Log
+import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.wahyuagast.keamanansisteminformasimobile.BuildConfig
 import kotlinx.serialization.json.Json
@@ -25,13 +25,18 @@ object RetrofitClient {
 
     ///Critical level = HttpLoggingInterceptor.Level.BODY will expose login info
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        // Keep logging disabled by default to avoid leaking tokens/PII in logs.
-        level = HttpLoggingInterceptor.Level.NONE
-        // NOTE: Some versions of HttpLoggingInterceptor support redactHeader(name)
-        // which can be used in debug builds to redact Authorization header instead
-        // of disabling logging. Example (uncomment in debug only):
-        // loggingInterceptor.level = HttpLoggingInterceptor.Level.BASIC
-        // loggingInterceptor.redactHeader("Authorization")
+        // Enable basic logging only on debug builds and redact Authorization header if supported.
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+        // If your OkHttp version supports redactHeader, enable it when debugging:
+        if (BuildConfig.DEBUG) {
+            try {
+                // reflection-safe: some versions expose redactHeader(name)
+                val m = this::class.java.getMethod("redactHeader", String::class.java)
+                m.invoke(this, "Authorization")
+            } catch (_: Exception) {
+                // ignore if not supported
+            }
+        }
     }
 
     private lateinit var tokenManager: com.wahyuagast.keamanansisteminformasimobile.data.local.TokenManager
@@ -80,7 +85,7 @@ object RetrofitClient {
 
                 // Log minimal information: HTTP method and presence of auth token.
                 // Avoid printing req.url or req.url.encodedPath which may reveal endpoints.
-                Log.d("RetrofitClient", "HTTP ${req.method} — Authorization=$maskedAuth")
+                AppLog.d("RetrofitClient", "HTTP ${req.method} — Authorization=$maskedAuth")
 
                 chain.proceed(req)
             }

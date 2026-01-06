@@ -5,6 +5,7 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormR
 import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationStatusResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
+import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
 
 class RegistrationRepository {
     private val api = RetrofitClient.apiService
@@ -16,8 +17,8 @@ class RegistrationRepository {
                 Resource.Success(resp.body()!!)
             } else if (resp.code() == 404) {
                 // Determine if 404 means "Not Registered". Try to fetch resources manually.
-                android.util.Log.w("RegRepo", "Status 404, attempting to fetch resources manually")
-                
+                AppLog.w("RegRepo", "Status 404, attempting to fetch resources manually")
+
                 // Fetch Mitras
                 val mitrasResp = api.getMitras()
                 val mitrasList = if (mitrasResp.isSuccessful) mitrasResp.body()?.mitra ?: emptyList() else emptyList()
@@ -89,7 +90,7 @@ class RegistrationRepository {
             } else {
                 // Avoid logging raw error bodies (can contain sensitive data).
                 val errorBody = resp.errorBody()?.string()
-                android.util.Log.e("RegRepo", "Submit failed: HTTP ${resp.code()} - check server logs")
+                AppLog.e("RegRepo", "Submit failed: HTTP ${resp.code()} - check server logs")
                 val errorMessage = try {
                     if (errorBody != null) {
                         // Attempt to extract a safe message from the error body

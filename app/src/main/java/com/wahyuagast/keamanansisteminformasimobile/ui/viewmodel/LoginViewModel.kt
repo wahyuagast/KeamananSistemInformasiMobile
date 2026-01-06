@@ -12,6 +12,7 @@ import com.wahyuagast.keamanansisteminformasimobile.data.repository.AuthReposito
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.coroutines.launch
 import com.wahyuagast.keamanansisteminformasimobile.utils.InputSanitizer
+import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
     
@@ -43,12 +44,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             if (result is Resource.Success) {
                 result.data.token?.let { token ->
                     // Do not log the token value
-                    android.util.Log.d("LoginViewModel", "Login success, storing token")
+                    AppLog.d("LoginViewModel", "Login success, storing token")
                     repository.saveToken(token)
-                } ?: android.util.Log.w("LoginViewModel", "Login succeeded but token missing")
+                } ?: AppLog.w("LoginViewModel", "Login succeeded but token missing")
             } else if (result is Resource.Error) {
                 // Log a generic error for debugging; do not include untrusted server message bodies
-                android.util.Log.e("LoginViewModel", "Login failed: ${result.message}")
+                AppLog.e("LoginViewModel", "Login failed: ${result.message}")
             }
             loginState = result
         }
