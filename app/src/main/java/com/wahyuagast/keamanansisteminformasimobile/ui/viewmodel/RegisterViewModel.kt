@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.wahyuagast.keamanansisteminformasimobile.utils.InputSanitizer
 
 class RegisterViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = AuthRepository(TokenManager(application))
@@ -44,17 +45,17 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
 
     fun register() {
         viewModelScope.launch {
-            // local trimming and normalization
-            val e = email.trim().lowercase()
-            val pw = password
-            val pwc = passwordConfirmation
-            val fn = fullname.trim()
-            val un = username.trim()
-            val n = nim.trim()
-            val dg = degree.trim()
-            val ph = phoneNumber.trim()
-            val sp = studyProgramId.trim()
-            val yr = year.trim()
+            // local trimming and normalization + client-side sanitation using InputSanitizer
+            val e = InputSanitizer.sanitizeForApi(email).lowercase()
+            val pw = InputSanitizer.sanitizeForApi(password)
+            val pwc = InputSanitizer.sanitizeForApi(passwordConfirmation)
+            val fn = InputSanitizer.sanitizeForApi(fullname)
+            val un = InputSanitizer.sanitizeForApi(username)
+            val n = InputSanitizer.sanitizeForApi(nim)
+            val dg = InputSanitizer.sanitizeForApi(degree)
+            val ph = InputSanitizer.sanitizeForApi(phoneNumber)
+            val sp = InputSanitizer.sanitizeForApi(studyProgramId)
+            val yr = InputSanitizer.sanitizeForApi(year)
 
             // basic validation with field-level errors
             val fieldErrors = mutableMapOf<String, MutableList<String>>()

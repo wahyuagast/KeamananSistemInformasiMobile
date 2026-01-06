@@ -5,7 +5,6 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormR
 import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationStatusResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
-import retrofit2.Response
 
 class RegistrationRepository {
     private val api = RetrofitClient.apiService
@@ -24,7 +23,7 @@ class RegistrationRepository {
                 val mitrasList = if (mitrasResp.isSuccessful) mitrasResp.body()?.mitra ?: emptyList() else emptyList()
 
                 // Fetch Periods (Guessing endpoint)
-                val periodsResp = try { api.getPeriods() } catch(e: Exception) { null }
+                val periodsResp = try { api.getPeriods() } catch(_ : Exception) { null }
                 val periodsList = if (periodsResp?.isSuccessful == true) periodsResp.body()?.periods ?: emptyList() else emptyList()
 
                 // Return "Not Registered" state with available resources
@@ -52,8 +51,8 @@ class RegistrationRepository {
             } else {
                 Resource.Error(resp.message())
             }
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Unknown error")
+        } catch (_: Exception) {
+            Resource.Error("Unknown error")
         }
     }
 
@@ -65,8 +64,8 @@ class RegistrationRepository {
             } else {
                 Resource.Error(resp.message())
             }
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Unknown error")
+        } catch (_: Exception) {
+            Resource.Error("Unknown error")
         }
     }
 
@@ -88,21 +87,23 @@ class RegistrationRepository {
             if (resp.isSuccessful && resp.body() != null) {
                 Resource.Success(resp.body()!!)
             } else {
+                // Avoid logging raw error bodies (can contain sensitive data).
                 val errorBody = resp.errorBody()?.string()
-                android.util.Log.e("RegRepo", "Submit failed: code=${resp.code()}, error=$errorBody")
+                android.util.Log.e("RegRepo", "Submit failed: HTTP ${resp.code()} - check server logs")
                 val errorMessage = try {
                     if (errorBody != null) {
-                        org.json.JSONObject(errorBody).getString("message")
+                        // Attempt to extract a safe message from the error body
+                        org.json.JSONObject(errorBody).optString("message", resp.message())
                     } else {
                         resp.message()
                     }
-                } catch (e: Exception) {
-                    errorBody ?: resp.message()
+                } catch (_: Exception) {
+                    resp.message()
                 }
                 Resource.Error(errorMessage)
             }
-        } catch (e: Exception) {
-            Resource.Error(e.message ?: "Unknown error")
+        } catch (_: Exception) {
+            Resource.Error("Unknown error")
         }
     }
 }

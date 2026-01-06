@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.wahyuagast.keamanansisteminformasimobile.data.local
 
 import android.content.Context
@@ -18,6 +19,8 @@ class TokenManager(context: Context) {
 
     init {
         // 1. Create a master key stored securely in the Android Keystore.
+        // NOTE: Some SDK versions mark MasterKey/EncryptedSharedPreferences deprecated; keep this
+        // for backwards compatibility. Upgrade to the recommended API if/when available.
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
@@ -34,7 +37,9 @@ class TokenManager(context: Context) {
 
     // Switched from suspend fun to regular fun, as SharedPreferences is synchronous.
     fun saveToken(token: String) {
-        android.util.Log.d("TokenManager", "Saving token: ${token.take(10)}...")
+        // Do NOT log the token value even partially; this may leak secrets in logs.
+        // Keep only a generic message indicating token was saved.
+        android.util.Log.d("TokenManager", "Access token saved to EncryptedSharedPreferences")
         prefs.edit().putString(ACCESS_TOKEN_KEY, token).apply()
     }
 
@@ -42,8 +47,6 @@ class TokenManager(context: Context) {
         val token = prefs.getString(ACCESS_TOKEN_KEY, null)
         if (token == null) {
             android.util.Log.w("TokenManager", "getToken: null")
-        } else {
-            // android.util.Log.d("TokenManager", "getToken: found") // verbose
         }
         return token
     }
@@ -52,4 +55,3 @@ class TokenManager(context: Context) {
         prefs.edit().clear().apply()
     }
 }
-    
