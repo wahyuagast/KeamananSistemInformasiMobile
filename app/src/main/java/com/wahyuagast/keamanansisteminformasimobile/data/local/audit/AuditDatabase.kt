@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.wahyuagast.keamanansisteminformasimobile.data.model.AuditLogEntity
 
-@Database(entities = [AuditLogEntity::class], version = 1)
+@Database(entities = [AuditLogEntity::class], version = 1, exportSchema = false)
 abstract class AuditDatabase : RoomDatabase() {
     abstract fun auditDao(): AuditDao
 
@@ -19,4 +19,3 @@ abstract class AuditDatabase : RoomDatabase() {
         }
     }
 }
-

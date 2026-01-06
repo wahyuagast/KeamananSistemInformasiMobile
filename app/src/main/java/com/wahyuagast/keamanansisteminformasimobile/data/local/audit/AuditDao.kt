@@ -9,15 +9,14 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.AuditLogEntity
 @Dao
 interface AuditDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(log: AuditLogEntity)
+    fun insert(log: AuditLogEntity): Long
 
     @Query("SELECT * FROM audit_logs ORDER BY timestamp ASC LIMIT :limit")
-    suspend fun getPending(limit: Int): List<AuditLogEntity>
+    fun getPending(limit: Int): List<AuditLogEntity>
 
     @Query("DELETE FROM audit_logs WHERE id IN (:ids)")
-    suspend fun deleteByIds(ids: List<String>)
+    fun deleteByIds(ids: List<String>): Int
 
-    @Query("UPDATE audit_logs SET attemptCount = attemptCount + 1 WHERE id IN (:ids)")
-    suspend fun incrementAttemptCount(ids: List<String>)
+    @Query("UPDATE audit_logs SET attempt_count = attempt_count + 1 WHERE id IN (:ids)")
+    fun incrementAttemptCount(ids: List<String>): Int
 }
-

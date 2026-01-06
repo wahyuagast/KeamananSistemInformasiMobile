@@ -11,8 +11,10 @@ import java.util.Date
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class AuditRepository(private val context: Context) {
+class AuditRepository(context: Context) {
     private val db = AuditDatabase.getInstance(context)
     private val dao = db.auditDao()
 
@@ -24,13 +26,15 @@ class AuditRepository(private val context: Context) {
         val ts = sdf.format(Date())
         val detailsJson = Json.encodeToString(details)
         val entity = AuditLogEntity(id = id, timestamp = ts, actorId = actorId, eventType = eventType, resourceId = resourceId, details = detailsJson, severity = severity)
-        dao.insert(entity)
+        withContext(Dispatchers.IO) {
+            dao.insert(entity)
+        }
         AppLog.d("AuditRepository", "Enqueued audit event: $eventType id=$id")
     }
 
-    suspend fun fetchPending(limit: Int = 50): List<AuditLogEntity> = dao.getPending(limit)
+    suspend fun fetchPending(limit: Int = 50): List<AuditLogEntity> = withContext(Dispatchers.IO) { dao.getPending(limit) }
 
-    suspend fun removeSent(ids: List<String>) { if (ids.isNotEmpty()) dao.deleteByIds(ids) }
+    suspend fun removeSent(ids: List<String>) { if (ids.isNotEmpty()) withContext(Dispatchers.IO) { dao.deleteByIds(ids) } }
 
-    suspend fun markAttempts(ids: List<String>) { if (ids.isNotEmpty()) dao.incrementAttemptCount(ids) }
+    suspend fun markAttempts(ids: List<String>) { if (ids.isNotEmpty()) withContext(Dispatchers.IO) { dao.incrementAttemptCount(ids) } }
 }
