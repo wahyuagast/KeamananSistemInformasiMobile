@@ -25,30 +25,30 @@ import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
 @Composable
 fun SuratScreen(
     onBack: () -> Unit,
-    viewModel: com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.SuratViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     var showForm by remember { mutableStateOf(false) }
     
-    // Wire up ViewModel logic for the dialog
+    // Initial Load
+    LaunchedEffect(Unit) {
+        viewModel.loadDocuments()
+    }
+
+    val documentListState = viewModel.documentListState
     val documentTypesState = viewModel.documentTypesState
-    val documentSubmissionState = viewModel.documentSubmissionState
+    val submissionState = viewModel.submissionState
     val context = androidx.compose.ui.platform.LocalContext.current
 
     // Handle Submission Success
-    LaunchedEffect(documentSubmissionState) {
-        if (documentSubmissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success) {
+    LaunchedEffect(submissionState) {
+        if (submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success) {
             showForm = false
-            viewModel.resetDocumentSubmissionState()
+            viewModel.resetSubmissionState()
             android.widget.Toast.makeText(context, "Pengajuan berhasil!", android.widget.Toast.LENGTH_SHORT).show()
+        } else if (submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Error) {
+             android.widget.Toast.makeText(context, submissionState.message, android.widget.Toast.LENGTH_SHORT).show()
         }
     }
-    
-    // Mock Data (Keeping this for list display as requested list fix wasn't specific, but Dialog was)
-    val mockSurat = listOf(
-        SuratItem(1, "Surat 1A", "approved", "20 Nov 2024", ""),
-        SuratItem(2, "Surat 2A", "pending", "22 Nov 2024", ""),
-        SuratItem(3, "Surat 2B", "rejected", "18 Nov 2024", "Format tanda tangan tidak sesuai")
-    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -58,22 +58,41 @@ fun SuratScreen(
         ) {
             // Header
             CommonHeader(title = "Pengajuan Surat", onBack = onBack) {
-                // Add Button
-                 IconButton(
-                    onClick = { 
-                        viewModel.loadDocumentTypes()
-                        showForm = true 
-                    },
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(CustomPrimary, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Ajukan Surat",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
+                Row {
+                    // Reload Button
+                    IconButton(
+                        onClick = { viewModel.loadDocuments() },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color.Gray.copy(alpha = 0.2f), CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Reload",
+                            tint = CustomBlack,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Add Button
+                    IconButton(
+                        onClick = { 
+                            viewModel.loadDocumentTypes()
+                            showForm = true 
+                        },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(CustomPrimary, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Ajukan Surat",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 
@@ -85,18 +104,40 @@ fun SuratScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                mockSurat.forEach { surat ->
-                    SuratCard(surat)
-                }
+                 when (documentListState) {
+                    is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Loading -> {
+                        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CustomPrimary) }
+                    }
+                    is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success -> {
+                        val documents = documentListState.data.documents
+                        if (documents.isEmpty()) {
+                             Box(modifier = Modifier.fillMaxSize().height(400.dp), contentAlignment = Alignment.Center) {
+                                Text("Belum ada surat diajukan", color = CustomGray)
+                             }
+                        } else {
+                            documents.forEach { doc ->
+                                SuratCard(doc)
+                            }
+                        }
+                    }
+                    is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Error -> {
+                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                 Text("Gagal memuat surat: ${documentListState.message}", color = CustomDanger)
+                                 Button(onClick = { viewModel.loadDocuments() }) { Text("Coba Lagi") }
+                             }
+                         }
+                    }
+
+                     else -> {}
+                 }
             }
         }
         
         // Modal / Overlay for Form
         if (showForm) {
-            val typeState = viewModel.documentTypesState
-            val types = if (typeState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success) typeState.data.documentTypes else emptyList()
-            val isSubmitting = viewModel.documentSubmissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Loading
-            val submissionState = viewModel.documentSubmissionState
+            val types = if (documentTypesState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Success) documentTypesState.data.documentTypes else emptyList()
+            val isSubmitting = submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Loading
             val errorMessage = if (submissionState is com.wahyuagast.keamanansisteminformasimobile.utils.Resource.Error) submissionState.message else null
 
             com.wahyuagast.keamanansisteminformasimobile.ui.components.PengajuanSuratDialog(
@@ -105,7 +146,7 @@ fun SuratScreen(
                 errorMessage = errorMessage,
                 onDismiss = { showForm = false },
                 onSubmit = { typeId, desc ->
-                    viewModel.submitDocumentRequest(typeId, desc)
+                    viewModel.submitDocument(typeId, desc)
                 }
             )
         }
@@ -113,7 +154,7 @@ fun SuratScreen(
 }
 
 @Composable
-fun SuratCard(surat: SuratItem) {
+fun SuratCard(doc: com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentDto) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -141,15 +182,16 @@ fun SuratCard(surat: SuratItem) {
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(text = surat.jenis, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
-                    Text(text = surat.tanggal, style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                    Text(text = doc.name ?: "Dokumen", style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
+                    val date = if (doc.createdAt != null && doc.createdAt.length >= 10) doc.createdAt.substring(0, 10) else "-"
+                    Text(text = date, style = MaterialTheme.typography.bodySmall, color = CustomGray)
                 }
             }
             
-            StatusBadge(status = surat.status)
+            StatusBadge(status = doc.status ?: "Unknown")
         }
         
-        if (surat.komentar.isNotEmpty()) {
+        if (doc.description != null && doc.description.isNotEmpty()) {
             Spacer(modifier = Modifier.height(12.dp))
             Box(
                 modifier = Modifier
@@ -158,13 +200,13 @@ fun SuratCard(surat: SuratItem) {
                     .padding(12.dp)
             ) {
                 Column {
-                    Text(text = "Komentar:", style = MaterialTheme.typography.bodySmall, color = CustomGray)
-                    Text(text = surat.komentar, style = MaterialTheme.typography.bodySmall, color = CustomBlack)
+                    Text(text = "Keterangan:", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                    Text(text = doc.description, style = MaterialTheme.typography.bodySmall, color = CustomBlack)
                 }
             }
         }
         
-        if (surat.status == "approved") {
+        if (doc.status == "approved" && !doc.filePath.isNullOrEmpty()) {
             Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = {},
@@ -184,8 +226,8 @@ fun SuratCard(surat: SuratItem) {
 
 @Composable
 fun StatusBadge(status: String) {
-    val (color, text, icon) = when (status) {
-        "approved" -> Triple(CustomSuccess, "Disetujui", Icons.Default.CheckCircle)
+    val (color, text, icon) = when (status.lowercase()) {
+        "approved", "completed" -> Triple(CustomSuccess, "Disetujui", Icons.Default.CheckCircle)
         "pending" -> Triple(CustomWarning, "Pending", Icons.Default.Schedule)
         "rejected" -> Triple(CustomDanger, "Ditolak", Icons.Default.Cancel)
         else -> Triple(CustomGray, status, Icons.Default.Info)
@@ -205,68 +247,7 @@ fun StatusBadge(status: String) {
 
 @Composable
 fun AjukanSuratDialog(onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-             modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier.width(40.dp).height(4.dp).background(Color(0xFFC6C6C8), CircleShape).padding(bottom = 16.dp)
-                )
-                Text("Ajukan Surat Baru", style = MaterialTheme.typography.titleMedium, color = CustomBlack)
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Form Fields (Simple placeholder for select/text)
-                OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
-                    placeholder = { Text("Pilih Jenis Surat") },
-                    modifier = Modifier.fillMaxWidth(),
-                    readOnly = true, // Simulate select
-                    trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) }
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
-                    placeholder = { Text("Jelaskan keperluan surat...") },
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
-                    minLines = 3
-                )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = CustomBackground, contentColor = CustomBlack),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Batal")
-                    }
-                    Button(
-                        onClick = { 
-                            // Submit logic
-                            onDismiss() 
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = CustomPrimary),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Ajukan")
-                    }
-                }
-            }
-        }
-    }
+    // This is just a placeholder, the actual dialog used is PengajuanSuratDialog from components
 }
 
 @Composable
@@ -275,8 +256,8 @@ fun CommonHeader(title: String, onBack: () -> Unit, action: @Composable () -> Un
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .padding(top = 24.dp)
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -304,12 +285,10 @@ fun CommonHeader(title: String, onBack: () -> Unit, action: @Composable () -> Un
                 color = CustomBlack
             )
             
-            Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+            Row {
                 action()
             }
         }
     }
     Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color(0xFFC6C6C8)))
 }
-
-data class SuratItem(val id: Int, val jenis: String, val status: String, val tanggal: String, val komentar: String)

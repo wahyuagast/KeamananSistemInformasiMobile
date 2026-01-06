@@ -67,8 +67,8 @@ fun AdminDashboardScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
-                .padding(horizontal = 24.dp, vertical = 20.dp)
-                .padding(top = 24.dp)
+                .statusBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -214,6 +214,20 @@ fun AdminDashboardScreen(
                     onClick = { onNavigate("admin-mahasiswa") }
                 )
             }
+            Spacer(modifier = Modifier.height(12.dp))
+            // Second Menu Row
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                AdminMenuCard(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Default.List,
+                    color = CustomWarning,
+                    title = "Data Pendaftaran",
+                    subtitle = awardeeCount?.let { "$it data" } ?: "Memuat...",
+                    onClick = { onNavigate("admin-registration-list") }
+                )
+                // Spacer for now if we don't have a 4th item, or make it take full width
+                Spacer(modifier = Modifier.weight(1f))
+            }
         }
     }
 }
@@ -221,19 +235,27 @@ fun AdminDashboardScreen(
 fun relativeTimeAgo(timeStr: String?): String {
     if (timeStr.isNullOrBlank()) return "Unknown time"
 
-    return try {
-        val dateTime = OffsetDateTime.parse(timeStr)
-        val now = OffsetDateTime.now()
-        val diff = now.toEpochSecond() - dateTime.toEpochSecond()
+    // Try to parse common ISO formats and fallback to simple substring
+    val patterns = listOf("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ssXXX", "yyyy-MM-dd")
+    var parsed: java.util.Date? = null
+    for (p in patterns) {
+        try {
+            val sdf = java.text.SimpleDateFormat(p, java.util.Locale.getDefault())
+            if (p.contains("'Z'") || p.contains("XXX")) sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            val d = sdf.parse(timeStr)
+            if (d != null) { parsed = d; break }
+        } catch (_: Exception) {}
+    }
 
-        when {
-            diff < 60 -> "${diff}s ago"
-            diff < 3600 -> "${diff / 60}m ago"
-            diff < 86400 -> "${diff / 3600}h ago"
-            else -> "${diff / 86400}d ago"
-        }
-    } catch (_: Exception) {
-        "Invalid date"
+    if (parsed == null) return "Invalid date"
+
+    val now = System.currentTimeMillis()
+    val diffSecs = (now - parsed.time) / 1000
+    return when {
+        diffSecs < 60 -> "${diffSecs}s ago"
+        diffSecs < 3600 -> "${diffSecs / 60}m ago"
+        diffSecs < 86400 -> "${diffSecs / 3600}h ago"
+        else -> "${diffSecs / 86400}d ago"
     }
 }
 

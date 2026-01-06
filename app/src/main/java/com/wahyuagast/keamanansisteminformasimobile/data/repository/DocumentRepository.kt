@@ -1,5 +1,6 @@
 package com.wahyuagast.keamanansisteminformasimobile.data.repository
 
+import android.content.Context
 import com.wahyuagast.keamanansisteminformasimobile.data.model.AdminActionRequest
 import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreRequest
 import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse
@@ -10,9 +11,16 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterDto
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
-class DocumentRepository {
+class DocumentRepository(context: Context? = null) {
     private val apiService = RetrofitClient.apiService
+    private val auditRepo = context?.let { AuditRepository(it.applicationContext) }
 
     suspend fun getDocumentTypes(): Resource<DocumentTypeResponse> {
         return try {
@@ -59,7 +67,7 @@ class DocumentRepository {
 
     suspend fun postAwardeeComment(id: Int, comment: String?): Boolean {
         return try {
-            val action = AdminActionRequest(adminComment = comment)
+            val action = AdminActionRequest(adminNote = comment)
             val r = apiService.postAwardeeComment(id, action)
             r.isSuccessful
         } catch (_: Exception) {
@@ -92,22 +100,73 @@ class DocumentRepository {
         }
     }
 
-    // Admin actions: approve/reject document
-    suspend fun approveDocument(documentId: Int, comment: String? = null): Boolean {
+    suspend fun uploadDocument(file: java.io.File, documentTypeId: Int): Resource<DocumentStoreResponse> {
         return try {
-            val body = comment?.let { AdminActionRequest(adminComment = it) }
-            val resp = apiService.approveDocument(documentId, body)
-            resp.isSuccessful
-        } catch (_: Exception) {
+            val requestFile = file.asRequestBody("application/pdf".toMediaTypeOrNull())
+            val body = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestFile)
+            val typeIdBody = documentTypeId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+
+            val response = apiService.uploadRegistrationDocument(body, typeIdBody)
+            
+            if (response.isSuccessful && response.body() != null) {
+                Resource.Success(response.body()!!)
+            } else {
+                 val errorBody = response.errorBody()?.string()
+                 val parsedError = try {
+                     if (errorBody != null) {
+                        val json = Json { ignoreUnknownKeys = true }
+                        json.decodeFromString<DocumentStoreResponse>(errorBody)
+                     } else null
+                 } catch (_: Exception) {
+                     null
+                 }
+
+                 val errorMessage = parsedError?.message ?: response.message()
+                 Resource.Error(errorMessage)
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Unknown error")
+        }
+    }
+
+    // Admin actions: approve/reject document
+    suspend fun approveDocument(documentId: Int, file: java.io.File, comment: String): Boolean {
+        return try {
+            val noteBody = comment.toRequestBody("text/plain".toMediaTypeOrNull())
+            // Assuming PDF is common, or generic octet-stream
+            val requestFile = file.asRequestBody("application/pdf".toMediaTypeOrNull())
+            val docPart = okhttp3.MultipartBody.Part.createFormData("document", file.name, requestFile)
+
+            val resp = apiService.approveDocument(documentId, noteBody, docPart)
+            val success = resp.isSuccessful
+            if (success) {
+                // enqueue audit
+                auditRepo?.let {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        it.enqueueEvent(null, "DOCUMENT_APPROVE", documentId.toString(), mapOf("comment" to comment))
+                    }
+                }
+            }
+            success
+        } catch (e: Exception) {
+            e.printStackTrace()
             false
         }
     }
 
     suspend fun rejectDocument(documentId: Int, comment: String? = null): Boolean {
         return try {
-            val body = comment?.let { AdminActionRequest(adminComment = it) }
+            val body = comment?.let { AdminActionRequest(adminNote = it) }
             val resp = apiService.rejectDocument(documentId, body)
-            resp.isSuccessful
+            val success = resp.isSuccessful
+            if (success) {
+                auditRepo?.let {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        it.enqueueEvent(null, "DOCUMENT_REJECT", documentId.toString(), mapOf("comment" to (comment ?: "")))
+                    }
+                }
+            }
+            success
         } catch (_: Exception) {
             false
         }
@@ -125,16 +184,26 @@ class DocumentRepository {
     suspend fun approveAwardeeRegister(id: Int): RegisterDto? {
         return try {
             val r = apiService.approveAwardeeRegister(id)
-            if (r.isSuccessful) r.body()?.register else null
+            return if (r.isSuccessful) {
+                auditRepo?.let { CoroutineScope(Dispatchers.IO).launch { it.enqueueEvent(null, "REGISTER_APPROVE", id.toString(), emptyMap()) } }
+                r.body()?.register
+            } else {
+                null
+            }
         } catch (_: Exception) {
-            null
+            return null
         }
     }
 
     suspend fun rejectAwardeeRegister(id: Int): RegisterDto? {
         return try {
             val r = apiService.rejectAwardeeRegister(id)
-            if (r.isSuccessful) r.body()?.register else null
+            return if (r.isSuccessful) {
+                auditRepo?.let { CoroutineScope(Dispatchers.IO).launch { it.enqueueEvent(null, "REGISTER_REJECT", id.toString(), emptyMap()) } }
+                r.body()?.register
+            } else {
+                null
+            }
         } catch (_: Exception) {
             null
         }

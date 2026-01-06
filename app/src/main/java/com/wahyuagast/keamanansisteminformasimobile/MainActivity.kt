@@ -4,12 +4,14 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.LoginScreen
+import com.wahyuagast.keamanansisteminformasimobile.ui.screens.RegisterScreen
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.*
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin.*
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.KeamananSistemInformasiMobileTheme
@@ -27,8 +29,50 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
 
             KeamananSistemInformasiMobileTheme {
-                NavHost(navController = navController, startDestination = "login") {
+                val mainViewModel: com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MainViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+                val sessionState by mainViewModel.sessionState.collectAsState()
+
+                // Decide start destination based on session state, but initially show splash
+                // Actually, NavHost needs a fixed startDestination string. 
+                // We use "splash" as start.
+                
+                NavHost(navController = navController, startDestination = "splash") {
                     
+                    composable("splash") {
+                        // Observe state and navigate
+                        LaunchedEffect(sessionState) {
+                            when (val state = sessionState) {
+                                is com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.SessionState.Authenticated -> {
+                                    if (state.roleId == 3) {
+                                        navController.navigate("dashboard_admin") {
+                                            popUpTo("splash") { inclusive = true }
+                                        }
+                                    } else {
+                                        navController.navigate("dashboard_mahasiswa") {
+                                            popUpTo("splash") { inclusive = true }
+                                        }
+                                    }
+                                }
+                                is com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.SessionState.Unauthenticated -> {
+                                    navController.navigate("login") {
+                                        popUpTo("splash") { inclusive = true }
+                                    }
+                                }
+                                else -> { /* Loading */ }
+                            }
+                        }
+
+                        // Simple centered loading screen
+                        androidx.compose.foundation.layout.Box(
+                            modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+                            contentAlignment = androidx.compose.ui.Alignment.Center
+                        ) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                color = com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
+                            )
+                        }
+                    }
+
                     // --- LOGIN ---
                     composable("login") {
                         LoginScreen(
@@ -42,6 +86,24 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("dashboard_mahasiswa") {
                                         popUpTo("login") { inclusive = true }
                                     }
+                                }
+                            },
+                            onNavigateToRegister = {
+                                navController.navigate("register")
+                            }
+                        )
+                    }
+
+                    composable("register") {
+                        RegisterScreen(
+                            onRegisterSuccess = {
+                                navController.navigate("login") {
+                                    popUpTo("register") { inclusive = true }
+                                }
+                            },
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo("register") { inclusive = true }
                                 }
                             }
                         )
@@ -105,6 +167,15 @@ class MainActivity : ComponentActivity() {
                         AdminMahasiswaScreen(onBack = { navController.popBackStack() })
                     }
                     
+                    composable("admin-registration-list") {
+                        AdminRegistrationListScreen(
+                            onBack = { navController.popBackStack() },
+                            onNavigateToDetail = { id ->
+                                navController.navigate("admin-registration/$id")
+                            }
+                        )
+                    }
+
                     composable("admin-registration/{id}") { backStackEntry ->
                         val id = backStackEntry.arguments?.getString("id")?.toIntOrNull() ?: 0
                         AdminRegistrationScreen(registrationId = id, onBack = { navController.popBackStack() })

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.wahyuagast.keamanansisteminformasimobile.ui.components
 
 import androidx.compose.foundation.layout.*
@@ -12,7 +14,6 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentType
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomPrimary
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.CustomGray
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PengajuanSuratDialog(
     documentTypes: List<DocumentType>,
@@ -50,7 +51,7 @@ fun PengajuanSuratDialog(
                         value = selectedType?.name ?: "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Pilih Jenis Surat") },
+                        label = { Text("Pilih Jenis Surat", style = MaterialTheme.typography.bodyMedium) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown) },
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                          colors = OutlinedTextFieldDefaults.colors(
@@ -64,7 +65,7 @@ fun PengajuanSuratDialog(
                     ) {
                         documentTypes.forEach { type ->
                             DropdownMenuItem(
-                                text = { Text(type.name) },
+                                text = { Text(type.name, style = MaterialTheme.typography.bodyMedium) },
                                 onClick = {
                                     selectedType = type
                                     showDropdown = false
@@ -80,7 +81,7 @@ fun PengajuanSuratDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Keterangan/Deskripsi") },
+                    label = { Text("Keterangan/Deskripsi", style = MaterialTheme.typography.bodyMedium) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     maxLines = 5,
@@ -97,7 +98,7 @@ fun PengajuanSuratDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Batal", color = CustomGray)
+                        Text("Batal", color = CustomGray, style = MaterialTheme.typography.bodyMedium)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -115,7 +116,7 @@ fun PengajuanSuratDialog(
                                 color = androidx.compose.ui.graphics.Color.White
                             )
                         } else {
-                            Text("Ajukan")
+                            Text("Ajukan", style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }

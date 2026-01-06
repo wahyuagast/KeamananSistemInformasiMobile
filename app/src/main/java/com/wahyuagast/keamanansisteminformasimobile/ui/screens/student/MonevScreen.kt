@@ -16,16 +16,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
 @Composable
-fun MonevScreen(onBack: () -> Unit) {
-    // Mock Documents
-    val documents = listOf(
-        DocumentItem("form6b", "Form 6B - Monitoring Evaluasi", "uploaded"),
-        DocumentItem("form7a", "Form 7A - Laporan Observasi", "pending"),
-        DocumentItem("daftarhadir", "Daftar Hadir Observasi", "uploaded"),
-        DocumentItem("draft", "Draft Laporan Pengabdian", "empty")
-    )
+fun MonevScreen(
+    onBack: () -> Unit,
+    viewModel: com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MonevViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
+    LaunchedEffect(Unit) {
+        viewModel.loadMonev()
+    }
+    val monevState = viewModel.monevState
 
     Column(
         modifier = Modifier
@@ -40,50 +41,87 @@ fun MonevScreen(onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Schedule Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = CustomDanger.copy(alpha = 0.1f)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CustomDanger.copy(alpha = 0.2f)),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.padding(bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.DateRange, null, tint = CustomDanger, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Jadwal Observasi", color = CustomBlack, style = MaterialTheme.typography.bodyMedium)
+            when (monevState) {
+                is Resource.Loading -> {
+                     Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = CustomDanger) }
+                }
+                is Resource.Error -> {
+                    Text("Error: ${monevState.message}", color = CustomDanger, modifier = Modifier.padding(16.dp))
+                    Button(onClick = { viewModel.loadMonev() }, modifier = Modifier.padding(start = 16.dp)) { Text("Retry") }
+                }
+                is Resource.Success -> {
+                    val data = monevState.data
+                    
+                    // Schedule Card (Timeline)
+                    if (data.timeline.isNotEmpty()) {
+                        data.timeline.forEach { event ->
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = CustomDanger.copy(alpha = 0.1f)),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, CustomDanger.copy(alpha = 0.2f)),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(
+                                        modifier = Modifier.padding(bottom = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Default.DateRange, null, tint = CustomDanger, modifier = Modifier.size(20.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(text = event.title ?: "Jadwal", color = CustomBlack, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    }
+                                    
+                                    val startDate = event.startDate?.substring(0, 10) ?: "-"
+                                    val startTime = if (event.startDate != null && event.startDate.length > 16) event.startDate.substring(11, 16) else ""
+                                    val endTime = if (event.endDate != null && event.endDate.length > 16) event.endDate.substring(11, 16) else ""
+                                    
+                                    Text(text = startDate, color = CustomBlack, style = MaterialTheme.typography.bodySmall)
+                                    if (startTime.isNotEmpty()) {
+                                        Text(text = "$startTime - $endTime", color = CustomGray, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    event.description?.let { desc ->
+                                         Text(text = desc, color = CustomGray, style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                         Text("Belum ada jadwal monev.", color = CustomGray, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 16.dp))
                     }
-                    Text(text = "Kamis, 5 Desember 2024", color = CustomBlack, style = MaterialTheme.typography.bodySmall)
-                    Text(text = "10:00 - 12:00 WIB", color = CustomGray, style = MaterialTheme.typography.bodySmall)
-                    Text(text = "Lokasi: PT. Tech Nusantara - Jakarta", color = CustomGray, style = MaterialTheme.typography.bodySmall)
-                }
-            }
 
-            // Info Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "Catatan Penting", color = CustomBlack, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "• Upload semua dokumen sebelum observasi", color = CustomGray, style = MaterialTheme.typography.bodySmall)
-                    Text(text = "• Pastikan draft laporan sudah direvisi", color = CustomGray, style = MaterialTheme.typography.bodySmall)
-                    Text(text = "• Siapkan daftar hadir untuk ditandatangani", color = CustomGray, style = MaterialTheme.typography.bodySmall)
-                }
-            }
+                    // Info Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(text = "Catatan Penting", color = CustomBlack, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "• Upload semua dokumen sebelum observasi", color = CustomGray, style = MaterialTheme.typography.bodySmall)
+                            Text(text = "• Pastikan draft laporan sudah direvisi", color = CustomGray, style = MaterialTheme.typography.bodySmall)
+                            Text(text = "• Siapkan daftar hadir untuk ditandatangani", color = CustomGray, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
 
-            // Documents
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                documents.forEach { doc ->
-                    MonevDocCard(doc)
+                    // Documents
+                    val documents = listOf(
+                        DocumentItem("form6b", "Form 6B - Monitoring Evaluasi", data.form6b?.status ?: "empty", data.form6b?.comment ?: ""),
+                        DocumentItem("form7a", "Form 7A - Laporan Observasi", data.form7a?.status ?: "empty", data.form7a?.comment ?: ""),
+                        DocumentItem("daftarhadir", "Daftar Hadir Observasi", data.daftarHadirObservasi?.status ?: "empty", data.daftarHadirObservasi?.comment ?: ""),
+                        DocumentItem("draft", "Draft Laporan Pengabdian", data.draftLaporanPengabdian?.status ?: "empty", data.draftLaporanPengabdian?.comment ?: "")
+                    )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        documents.forEach { doc ->
+                            MonevDocCard(doc)
+                        }
+                    }
                 }
+
+                else -> {}
             }
         }
     }

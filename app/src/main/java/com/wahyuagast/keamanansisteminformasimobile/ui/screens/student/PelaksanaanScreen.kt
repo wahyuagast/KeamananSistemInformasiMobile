@@ -17,15 +17,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
+import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
 @Composable
-fun PelaksanaanScreen(onBack: () -> Unit) {
-    // Mock Documents
-    val documents = listOf(
-        DocumentItem("form3a", "Form 3A - Lembar Bimbingan", "uploaded", ""),
-        DocumentItem("form4b", "Form 4B - Monitoring", "pending", "Menunggu verifikasi"),
-        DocumentItem("form5a", "Form 5A - Kerjasama Instansi", "empty", "")
-    )
+fun PelaksanaanScreen(
+    onBack: () -> Unit,
+    viewModel: com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.ImplementationViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
+    LaunchedEffect(Unit) {
+        viewModel.loadImplementation()
+    }
+    val implState = viewModel.implementationState
 
     Column(
         modifier = Modifier
@@ -40,51 +42,88 @@ fun PelaksanaanScreen(onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Status Card
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(Color(0xFF5856D6), Color(0xFF4842C7)) // Custom Indigo Gradient
-                            )
-                        )
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Text(text = "Status Pelaksanaan", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
-                        Text(text = "Sedang Berjalan", color = Color.White, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(text = "Minggu ke-6 dari 12", color = Color.White, style = MaterialTheme.typography.bodySmall)
-                            Text(text = "50%", color = Color.White, style = MaterialTheme.typography.bodySmall)
+            when (implState) {
+                is Resource.Loading -> {
+                     Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                         CircularProgressIndicator(color = CustomPrimary)
+                     }
+                }
+                is Resource.Error -> {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = CustomDanger.copy(alpha = 0.1f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            Text("Error: ${implState.message}", color = CustomDanger)
+                            Button(onClick = { viewModel.loadImplementation() }) { Text("Retry") }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        LinearProgressIndicator(
-                            progress = { 0.5f },
-                            modifier = Modifier.fillMaxWidth().height(8.dp),
-                            color = Color.White,
-                            trackColor = Color.White.copy(alpha = 0.2f),
-                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-                        )
                     }
                 }
-            }
+                is Resource.Success -> {
+                    val data = implState.data
+                    
+                    // Status Card
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(Color(0xFF5856D6), Color(0xFF4842C7))
+                                    )
+                                )
+                                .padding(16.dp)
+                        ) {
+                            Column {
+                                Text(text = "Status Pelaksanaan", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+                                Text(text = "Sedang Berjalan", color = Color.White, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(text = "Minggu ke-${data.currentWeek} dari ${data.totalWeeks}", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                                    Text(text = "${data.progressTime}%", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                LinearProgressIndicator(
+                                    progress = { data.progressTime / 100f },
+                                    modifier = Modifier.fillMaxWidth().height(8.dp),
+                                    color = Color.White,
+                                    trackColor = Color.White.copy(alpha = 0.2f),
+                                    strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "${data.startDate} - ${data.endDate}",
+                                    color = Color.White.copy(alpha = 0.8f),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
 
-            // Document List
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                documents.forEach { doc ->
-                    PelaksanaanDocCard(doc)
+                    // Document List
+                    // Mapping forms from response to Document items
+                    val forms = listOf(
+                        DocumentItem("form3a", "Form 3A - Lembar Bimbingan", data.form3a?.status ?: "empty", data.form3a?.comment ?: ""),
+                        DocumentItem("form4b", "Form 4B - Monitoring", data.form4b?.status ?: "empty", data.form4b?.comment ?: ""),
+                        DocumentItem("form5a", "Form 5A - Kerjasama Instansi", data.form5a?.status ?: "empty", data.form5a?.comment ?: "")
+                    )
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        forms.forEach { doc ->
+                            PelaksanaanDocCard(doc)
+                        }
+                    }
                 }
+
+                else -> {}
             }
         }
     }

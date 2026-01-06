@@ -3,22 +3,17 @@ package com.wahyuagast.keamanansisteminformasimobile.ui.screens.student
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,11 +22,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
 import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
+import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MonevViewModel
+
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 @Composable
 fun MahasiswaDashboardScreen(
@@ -43,6 +43,9 @@ fun MahasiswaDashboardScreen(
         viewModel.loadProfile()
         viewModel.loadMitras()
     }
+    // Monev view model to fetch timeline/deadlines
+    val monevViewModel: MonevViewModel = viewModel()
+    LaunchedEffect(Unit) { monevViewModel.loadMonev() }
     val state = viewModel.profileState
 
     var userName = "Mahasiswa"
@@ -63,15 +66,15 @@ fun MahasiswaDashboardScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-                .padding(top = 24.dp) // Extra top padding
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Left: avatar + texts. Use weight so the right-side icon button keeps space.
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Box(
                         modifier = Modifier
                             .size(48.dp)
@@ -86,25 +89,28 @@ fun MahasiswaDashboardScreen(
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = "Halo,",
                             style = MaterialTheme.typography.bodySmall,
-                            color = CustomGray
+                            color = CustomGray,
+                            maxLines = 1
                         )
                         if (state is Resource.Loading) {
-                             Box(modifier = Modifier.width(100.dp).height(20.dp).background(CustomGray.copy(alpha=0.2f), RoundedCornerShape(4.dp)))
+                            Box(modifier = Modifier.width(120.dp).height(20.dp).background(CustomGray.copy(alpha = 0.2f), RoundedCornerShape(4.dp)))
                         } else {
                             Text(
                                 text = userName,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = CustomBlack
+                                color = CustomBlack,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
                     }
                 }
-                
+
                 IconButton(
                     onClick = {
                         viewModel.logout(onLogout)
@@ -114,7 +120,7 @@ fun MahasiswaDashboardScreen(
                         .background(CustomBackground, CircleShape)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Logout,
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
                         contentDescription = "Logout",
                         tint = CustomGray,
                         modifier = Modifier.size(20.dp)
@@ -122,7 +128,7 @@ fun MahasiswaDashboardScreen(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color(0xFFC6C6C8)))
 
         // Content Scrollable Area
@@ -199,18 +205,56 @@ fun MahasiswaDashboardScreen(
                 icon = Icons.Default.AccessTime,
                 iconTint = CustomPrimary
             ) {
-                 TimelineItem(
-                    title = "Upload Form 3A",
-                    subtitle = "2 hari lagi",
-                    color = CustomDanger,
-                    isLast = false
-                 )
-                 TimelineItem(
-                    title = "Monev Observasi",
-                    subtitle = "7 hari lagi",
-                    color = CustomWarning,
-                    isLast = true
-                 )
+                val monevState = monevViewModel.monevState
+                when (monevState) {
+                    is Resource.Loading -> {
+                        Box(modifier = Modifier.fillMaxWidth().height(56.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = CustomPrimary)
+                        }
+                    }
+                    is Resource.Success -> {
+                        val timeline = monevState.data.timeline
+                        if (timeline.isEmpty()) {
+                            Text("Tidak ada deadline", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        } else {
+                            // find up to 3 timeline items nearest to now (by endDate/startDate/createdAt)
+                            val nowMillis = System.currentTimeMillis()
+                            val itemsWithDate = timeline.mapNotNull { item ->
+                                val d = parseToDate(item.endDate ?: item.startDate ?: item.createdAt)
+                                if (d != null) Pair(item, d) else null
+                            }
+
+                            if (itemsWithDate.isEmpty()) {
+                                Text("Tidak ada deadline", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                            } else {
+                                val nearestList = itemsWithDate.sortedBy { pair -> kotlin.math.abs(nowMillis - pair.second.time) }.take(3)
+                                val periodsState = viewModel.periodsState
+                                nearestList.forEachIndexed { idx, (item, date) ->
+                                    val relative = formatRelative(date)
+                                    // resolve periode name if available
+                                    val periodeName = when (periodsState) {
+                                        is Resource.Success -> periodsState.data.periods.find { it.id == item.periodeId }?.name
+                                        else -> null
+                                    }
+                                    TimelineItem(
+                                        title = item.title ?: "(tidak berjudul)",
+                                        subtitle = relative,
+                                        description = item.description,
+                                        periode = periodeName,
+                                        color = if (date.time < System.currentTimeMillis()) CustomDanger else CustomWarning,
+                                        isLast = idx == nearestList.size - 1,
+                                        onClick = { onNavigate("monev") }
+                                    )
+                                }
+                             }
+                         }
+                     }
+
+                    is Resource.Error -> {
+                        Text(text = "Gagal memuat deadline: ${monevState.message}", style = MaterialTheme.typography.bodySmall, color = CustomDanger)
+                    }
+                    else -> {}
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -260,7 +304,7 @@ fun MahasiswaDashboardScreen(
                 MenuItem("Pengajuan Surat", Icons.Default.Description, CustomSuccess, "surat"),
                 MenuItem("Pendaftaran PKL", Icons.Default.PersonAdd, CustomWarning, "pendaftaran"),
                 MenuItem("Pelaksanaan", Icons.Default.Work, CustomIndigo, "pelaksanaan"),
-                MenuItem("Monev PKL", Icons.Default.Assignment, CustomDanger2, "monev"),
+                MenuItem("Monev PKL", Icons.AutoMirrored.Filled.Assignment, CustomDanger2, "monev"),
                 MenuItem("Ujian PKL", Icons.Default.Book, CustomPurple, "ujian")
             )
             
@@ -317,10 +361,19 @@ fun DashboardCard(
 }
 
 @Composable
-fun TimelineItem(title: String, subtitle: String, color: Color, isLast: Boolean) {
-    Row(
+fun TimelineItem(
+    title: String,
+    subtitle: String,
+    description: String? = null,
+    periode: String? = null,
+    color: Color,
+    isLast: Boolean,
+    onClick: (() -> Unit)? = null
+) {
+     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(bottom = if (isLast) 0.dp else 12.dp)
     ) {
          Box(
@@ -328,13 +381,24 @@ fun TimelineItem(title: String, subtitle: String, color: Color, isLast: Boolean)
          )
          Spacer(modifier = Modifier.width(12.dp))
          Column(modifier = Modifier.weight(1f)) {
-             Text(text = title, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
-             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = CustomGray)
-             if (!isLast) {
-                 Spacer(modifier = Modifier.height(12.dp))
-                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(CustomBackground))
-             }
-         }
+            Text(text = title, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
+            Spacer(modifier = Modifier.height(4.dp))
+            // subtitle (relative)
+            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = CustomGray)
+            // optional periode and description
+            periode?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = "Periode: $it", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+            }
+            description?.let {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = it, style = MaterialTheme.typography.bodySmall, color = CustomBlack)
+            }
+            if (!isLast) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(CustomBackground))
+            }
+        }
     }
 }
 
@@ -372,5 +436,45 @@ fun MenuButton(item: MenuItem, onClick: () -> Unit, modifier: Modifier = Modifie
         }
         Spacer(modifier = Modifier.height(12.dp))
         Text(text = item.label, style = MaterialTheme.typography.bodyMedium, color = CustomBlack, fontWeight = FontWeight.Medium)
+    }
+}
+
+// Helper: parse various date string formats to Date (compatible with minSdk 24)
+private fun parseToDate(dateStr: String?): Date? {
+    if (dateStr.isNullOrBlank()) return null
+    val patterns = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        "yyyy-MM-dd"
+    )
+    for (p in patterns) {
+        try {
+            val sdf = SimpleDateFormat(p, Locale.getDefault())
+            // when pattern includes 'Z' it's UTC
+            if (p.contains("'Z'" ) || p.contains("XXX")) {
+                sdf.timeZone = TimeZone.getTimeZone("UTC")
+            }
+            val d = sdf.parse(dateStr)
+            if (d != null) return d
+        } catch (_: Exception) {}
+    }
+    return null
+}
+
+// Helper: format relative time in Indonesian like "Jatuh tempo 3 hari yang lalu" or "Jatuh tempo dalam 5 hari"; if date is null show unknown
+private fun formatRelative(date: Date?): String {
+    if (date == null) return "Waktu tidak tersedia"
+    val now = System.currentTimeMillis()
+    val secs = (now - date.time) / 1000
+    val absDays = kotlin.math.abs(secs / (60 * 60 * 24))
+    return if (secs > 0) {
+        // past
+        if (absDays < 30) "Jatuh tempo $absDays hari yang lalu" else "Jatuh tempo ${absDays / 30} bulan yang lalu"
+    } else if (secs < 0) {
+        val days = absDays
+        if (days < 30) "Jatuh tempo dalam $days hari" else "Jatuh tempo dalam ${days / 30} bulan"
+    } else {
+        "Jatuh tempo hari ini"
     }
 }

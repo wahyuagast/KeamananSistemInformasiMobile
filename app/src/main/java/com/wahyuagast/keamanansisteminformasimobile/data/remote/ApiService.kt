@@ -2,6 +2,7 @@ package com.wahyuagast.keamanansisteminformasimobile.data.remote
 
 import com.wahyuagast.keamanansisteminformasimobile.data.model.LoginRequest
 import com.wahyuagast.keamanansisteminformasimobile.data.model.LoginResponse
+import com.wahyuagast.keamanansisteminformasimobile.data.model.AuditBatchRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -13,6 +14,13 @@ import retrofit2.http.Path
 interface ApiService {
     @POST("login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    // Register endpoint
+    @POST("register")
+    suspend fun register(
+        @Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterRequest,
+        @retrofit2.http.Header("Authorization") token: String? = null
+    ): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.AuthRegisterResponse>
 
     @GET("profile")
     suspend fun getProfile(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.ProfileResponse>
@@ -37,6 +45,9 @@ interface ApiService {
     @GET("registation")
     suspend fun getRegistrationStatus(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationStatusResponse>
 
+    @GET("periods")
+    suspend fun getPeriods(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.PeriodeResponse>
+
     @POST("registation/form")
     suspend fun submitRegistrationForm(@Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormRequest): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormResponse>
 
@@ -45,6 +56,13 @@ interface ApiService {
 
     @POST("document_store")
     suspend fun submitDocumentRequest(@Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreRequest): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse>
+
+    @Multipart
+    @POST("documents/regis")
+    suspend fun uploadRegistrationDocument(
+        @Part file: okhttp3.MultipartBody.Part,
+        @Part("document_type_id") documentTypeId: okhttp3.RequestBody
+    ): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse>
 
     // Admin: fetch awardees (students)
     @GET("admin/awardee")
@@ -63,8 +81,13 @@ interface ApiService {
     suspend fun getAdminDocuments(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.AdminDocumentsResponse>
 
     // Admin approve/reject endpoints
+    @Multipart
     @POST("admin/documents/{id}/approve")
-    suspend fun approveDocument(@Path("id") id: Int, @Body body: com.wahyuagast.keamanansisteminformasimobile.data.model.AdminActionRequest? = null): Response<Unit>
+    suspend fun approveDocument(
+        @Path("id") id: Int,
+        @Part("admin_note") adminNote: okhttp3.RequestBody,
+        @Part document: okhttp3.MultipartBody.Part
+    ): Response<Unit>
 
     @POST("admin/documents/{id}/reject")
     suspend fun rejectDocument(@Path("id") id: Int, @Body body: com.wahyuagast.keamanansisteminformasimobile.data.model.AdminActionRequest? = null): Response<Unit>
@@ -79,4 +102,23 @@ interface ApiService {
 
     @POST("admin/awardee/register/reject/{id}")
     suspend fun rejectAwardeeRegister(@Path("id") id: Int): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterResponse>
+
+    @GET("implementation")
+    suspend fun getImplementation(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.ImplementationResponse>
+
+    @GET("exam/draft")
+    suspend fun getExamDraft(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.ExamDraftResponse>
+
+    @GET("exam/final")
+    suspend fun getExamFinal(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.ExamFinalResponse>
+
+    @GET("monev")
+    suspend fun getMonev(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.MonevResponse>
+
+    @GET("documents")
+    suspend fun getDocuments(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentListResponse>
+
+    // Audit endpoint: accept batch of audit logs from clients
+    @POST("audit/logs")
+    suspend fun postAuditLogs(@Body request: AuditBatchRequest): Response<Unit>
 }
