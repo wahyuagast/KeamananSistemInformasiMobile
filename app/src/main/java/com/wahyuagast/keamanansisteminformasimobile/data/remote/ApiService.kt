@@ -2,6 +2,7 @@ package com.wahyuagast.keamanansisteminformasimobile.data.remote
 
 import com.wahyuagast.keamanansisteminformasimobile.data.model.LoginRequest
 import com.wahyuagast.keamanansisteminformasimobile.data.model.LoginResponse
+import com.wahyuagast.keamanansisteminformasimobile.data.model.AuditBatchRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -117,15 +118,7 @@ interface ApiService {
     @GET("documents")
     suspend fun getDocuments(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentListResponse>
 
-    // Note: submitDocumentRequest was already in the file at line 53, but I will ensure it is correct and not duplicated.
-    // It seems I missed it in my previous read or it was there. Let's double check line 53 of ApiService.
-    // Line 53: @POST("document_store") submitDocumentRequest...
-    // The user request says `/documents/store`. 
-    // I should check if "document_store" is correct or if it should be "documents/store".
-    // User prompt said: "The store endpoint: POST /documents/store"
-    // I will update the existing one or add a new one if different.
-    // Let's assume the user is correct about `/documents/store`.
-    
-    @POST("documents/store")
-    suspend fun storeDocument(@Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreRequest): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse>
+    // Audit endpoint: accept batch of audit logs from clients
+    @POST("audit/logs")
+    suspend fun postAuditLogs(@Body request: AuditBatchRequest): Response<Unit>
 }

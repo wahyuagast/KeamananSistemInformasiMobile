@@ -1,5 +1,6 @@
 package com.wahyuagast.keamanansisteminformasimobile.data.repository
 
+import android.content.Context
 import com.wahyuagast.keamanansisteminformasimobile.data.model.AdminActionRequest
 import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreRequest
 import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentStoreResponse
@@ -11,9 +12,15 @@ import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import com.wahyuagast.keamanansisteminformasimobile.data.repository.AuditRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
 
-class DocumentRepository {
+class DocumentRepository(private val context: Context? = null) {
     private val apiService = RetrofitClient.apiService
+    private val auditRepo = context?.let { AuditRepository(it.applicationContext) }
 
     suspend fun getDocumentTypes(): Resource<DocumentTypeResponse> {
         return try {
@@ -131,7 +138,16 @@ class DocumentRepository {
             val docPart = okhttp3.MultipartBody.Part.createFormData("document", file.name, requestFile)
 
             val resp = apiService.approveDocument(documentId, noteBody, docPart)
-            resp.isSuccessful
+            val success = resp.isSuccessful
+            if (success) {
+                // enqueue audit
+                auditRepo?.let {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        it.enqueueEvent(null, "DOCUMENT_APPROVE", documentId.toString(), mapOf("comment" to comment))
+                    }
+                }
+            }
+            success
         } catch (e: Exception) {
             e.printStackTrace()
             false
@@ -142,7 +158,15 @@ class DocumentRepository {
         return try {
             val body = comment?.let { AdminActionRequest(adminNote = it) }
             val resp = apiService.rejectDocument(documentId, body)
-            resp.isSuccessful
+            val success = resp.isSuccessful
+            if (success) {
+                auditRepo?.let {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        it.enqueueEvent(null, "DOCUMENT_REJECT", documentId.toString(), mapOf("comment" to (comment ?: "")))
+                    }
+                }
+            }
+            success
         } catch (_: Exception) {
             false
         }
@@ -160,7 +184,9 @@ class DocumentRepository {
     suspend fun approveAwardeeRegister(id: Int): RegisterDto? {
         return try {
             val r = apiService.approveAwardeeRegister(id)
-            if (r.isSuccessful) r.body()?.register else null
+            if (r.isSuccessful) {
+                auditRepo?.let { CoroutineScope(Dispatchers.IO).launch { it.enqueueEvent(null, "REGISTER_APPROVE", id.toString(), emptyMap()) } }
+                r.body()?.register else null
         } catch (_: Exception) {
             null
         }
@@ -169,7 +195,9 @@ class DocumentRepository {
     suspend fun rejectAwardeeRegister(id: Int): RegisterDto? {
         return try {
             val r = apiService.rejectAwardeeRegister(id)
-            if (r.isSuccessful) r.body()?.register else null
+            if (r.isSuccessful) {
+                auditRepo?.let { CoroutineScope(Dispatchers.IO).launch { it.enqueueEvent(null, "REGISTER_REJECT", id.toString(), emptyMap()) } }
+                r.body()?.register else null
         } catch (_: Exception) {
             null
         }

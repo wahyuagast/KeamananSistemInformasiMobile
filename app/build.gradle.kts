@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("kotlin-kapt")
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
 }
 
@@ -106,4 +107,12 @@ dependencies {
 
     // EncryptedSharedPreferences
     implementation("androidx.security:security-crypto:1.1.0")
+
+    // Room (local persistence for audit logs)
+    implementation("androidx.room:room-runtime:2.5.2")
+    implementation("androidx.room:room-ktx:2.5.2")
+    kapt("androidx.room:room-compiler:2.5.2")
+
+    // WorkManager (background upload of audit logs)
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
 }

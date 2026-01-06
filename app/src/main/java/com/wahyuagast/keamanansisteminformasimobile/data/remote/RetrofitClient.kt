@@ -48,6 +48,17 @@ object RetrofitClient {
         val appCtx = context.applicationContext
         tokenManager = com.wahyuagast.keamanansisteminformasimobile.data.local.TokenManager(appCtx)
         deviceId = Settings.Secure.getString(appCtx.contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
+
+        // Schedule a periodic work to upload audit logs when network is available
+        try {
+            val wm = androidx.work.WorkManager.getInstance(appCtx)
+            val request = androidx.work.PeriodicWorkRequestBuilder<com.wahyuagast.keamanansisteminformasimobile.worker.AuditUploadWorker>(15, java.util.concurrent.TimeUnit.MINUTES)
+                .setConstraints(androidx.work.Constraints.Builder().setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build())
+                .build()
+            wm.enqueueUniquePeriodicWork("audit_upload_work", androidx.work.ExistingPeriodicWorkPolicy.KEEP, request)
+        } catch (e: Exception) {
+            com.wahyuagast.keamanansisteminformasimobile.utils.AppLog.e("RetrofitClient", "Failed to schedule audit worker: ${e.message}")
+        }
     }
 
     private val okHttpClient by lazy {

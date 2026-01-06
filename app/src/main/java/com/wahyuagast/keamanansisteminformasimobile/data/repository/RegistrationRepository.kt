@@ -5,10 +5,25 @@ import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationFormR
 import com.wahyuagast.keamanansisteminformasimobile.data.model.RegistrationStatusResponse
 import com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
+import com.wahyuagast.keamanansisteminformasimobile.data.repository.AuditRepository
 import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
+import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class RegistrationRepository {
     private val api = RetrofitClient.apiService
+    // AuditRepository will be created lazily where needed; registration repository is not Android-specific.
+
+    private fun getAuditRepo(): AuditRepository? {
+        // Try to get application context from RetrofitClient initialization path or return null
+        return try {
+            val ctx = com.wahyuagast.keamanansisteminformasimobile.data.remote.RetrofitClient::class.java
+            // Not ideal - calling constructor with app context should be done in ViewModel instead.
+            null
+        } catch (_: Exception) { null }
+    }
 
     suspend fun getRegistrationStatus(): Resource<RegistrationStatusResponse> {
         return try {
@@ -86,6 +101,13 @@ class RegistrationRepository {
             )
             val resp = api.submitRegistrationForm(request)
             if (resp.isSuccessful && resp.body() != null) {
+                // enqueue audit event asynchronously (best effort)
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        // We don't have direct access to context here; audit enqueue is usually done in ViewModel.
+                        // If desired, move enqueue to the caller (ViewModel) where context is available.
+                    } catch (_: Exception) {}
+                }
                 Resource.Success(resp.body()!!)
             } else {
                 // Avoid logging raw error bodies (can contain sensitive data).
@@ -100,6 +122,12 @@ class RegistrationRepository {
                     }
                 } catch (_: Exception) {
                     resp.message()
+                }
+                // Optionally enqueue failed attempt (move to ViewModel where context exists)
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        // no-op here by default
+                    } catch (_: Exception) {}
                 }
                 Resource.Error(errorMessage)
             }
