@@ -44,31 +44,61 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
 
     fun register() {
         viewModelScope.launch {
-            // basic validation
-            if (email.isBlank() || password.isBlank() || passwordConfirmation.isBlank()) {
-                registerState = Resource.Error("Email and password are required")
-                return@launch
-            }
-            if (password != passwordConfirmation) {
-                registerState = Resource.Error("Password confirmation does not match")
+            // local trimming and normalization
+            val e = email.trim().lowercase()
+            val pw = password
+            val pwc = passwordConfirmation
+            val fn = fullname.trim()
+            val un = username.trim()
+            val n = nim.trim()
+            val dg = degree.trim()
+            val ph = phoneNumber.trim()
+            val sp = studyProgramId.trim()
+            val yr = year.trim()
+
+            // basic validation with field-level errors
+            val fieldErrors = mutableMapOf<String, MutableList<String>>()
+
+            if (e.isEmpty()) fieldErrors.getOrPut("email") { mutableListOf() }.add("Email tidak boleh kosong")
+            else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(e).matches()) fieldErrors.getOrPut("email") { mutableListOf() }.add("Format email tidak valid")
+
+            if (pw.isEmpty()) fieldErrors.getOrPut("password") { mutableListOf() }.add("Password tidak boleh kosong")
+            else if (pw.length < 8) fieldErrors.getOrPut("password") { mutableListOf() }.add("Password minimal 8 karakter")
+
+            if (pwc.isEmpty()) fieldErrors.getOrPut("password_confirmation") { mutableListOf() }.add("Konfirmasi password tidak boleh kosong")
+            else if (pw != pwc) fieldErrors.getOrPut("password_confirmation") { mutableListOf() }.add("Konfirmasi password tidak cocok")
+
+            if (fn.isEmpty()) fieldErrors.getOrPut("fullname") { mutableListOf() }.add("Nama lengkap tidak boleh kosong")
+            if (un.isEmpty()) fieldErrors.getOrPut("username") { mutableListOf() }.add("Username tidak boleh kosong")
+            if (n.isEmpty()) fieldErrors.getOrPut("nim") { mutableListOf() }.add("NIM tidak boleh kosong")
+            if (dg.isEmpty()) fieldErrors.getOrPut("degree") { mutableListOf() }.add("Gelar tidak boleh kosong")
+            if (ph.isEmpty()) fieldErrors.getOrPut("phoneNumber") { mutableListOf() }.add("No. HP tidak boleh kosong")
+            if (sp.isEmpty()) fieldErrors.getOrPut("studyProgramId") { mutableListOf() }.add("ID Program Studi tidak boleh kosong")
+            if (yr.isEmpty()) fieldErrors.getOrPut("year") { mutableListOf() }.add("Angkatan tidak boleh kosong")
+
+            if (fieldErrors.isNotEmpty()) {
+                // Convert to immutable map of lists
+                val im = fieldErrors.mapValues { it.value.toList() }
+                registerState = Resource.Error("Validasi gagal", im)
                 return@launch
             }
 
             registerState = Resource.Loading
             val req = RegisterRequest(
-                email = email.trim(),
-                password = password,
-                passwordConfirmation = passwordConfirmation,
-                fullname = fullname.trim(),
-                username = username.trim(),
-                nim = nim.trim(),
-                degree = degree.trim(),
-                phoneNumber = phoneNumber.trim(),
-                studyProgramId = studyProgramId.trim(),
-                year = year.trim()
+                email = e,
+                password = pw,
+                passwordConfirmation = pwc,
+                fullname = fn,
+                username = un,
+                nim = n,
+                degree = dg,
+                phoneNumber = ph,
+                studyProgramId = sp,
+                year = yr
             )
-            val result = repository.register(req)
-            // assign typed Resource<AuthRegisterResponse>
+
+            // Call repository; do not add any registration token by default
+            val result = repository.register(req, null)
             registerState = result
         }
     }

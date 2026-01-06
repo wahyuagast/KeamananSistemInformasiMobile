@@ -60,7 +60,7 @@ class DocumentRepository {
 
     suspend fun postAwardeeComment(id: Int, comment: String?): Boolean {
         return try {
-            val action = AdminActionRequest(adminComment = comment)
+            val action = AdminActionRequest(adminNote = comment)
             val r = apiService.postAwardeeComment(id, action)
             r.isSuccessful
         } catch (_: Exception) {
@@ -123,19 +123,24 @@ class DocumentRepository {
     }
 
     // Admin actions: approve/reject document
-    suspend fun approveDocument(documentId: Int, comment: String? = null): Boolean {
+    suspend fun approveDocument(documentId: Int, file: java.io.File, comment: String): Boolean {
         return try {
-            val body = comment?.let { AdminActionRequest(adminComment = it) }
-            val resp = apiService.approveDocument(documentId, body)
+            val noteBody = okhttp3.RequestBody.create("text/plain".toMediaTypeOrNull(), comment)
+            // Assuming PDF is common, or generic octet-stream
+            val requestFile = okhttp3.RequestBody.create("application/pdf".toMediaTypeOrNull(), file)
+            val docPart = okhttp3.MultipartBody.Part.createFormData("document", file.name, requestFile)
+
+            val resp = apiService.approveDocument(documentId, noteBody, docPart)
             resp.isSuccessful
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            e.printStackTrace()
             false
         }
     }
 
     suspend fun rejectDocument(documentId: Int, comment: String? = null): Boolean {
         return try {
-            val body = comment?.let { AdminActionRequest(adminComment = it) }
+            val body = comment?.let { AdminActionRequest(adminNote = it) }
             val resp = apiService.rejectDocument(documentId, body)
             resp.isSuccessful
         } catch (_: Exception) {

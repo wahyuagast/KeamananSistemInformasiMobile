@@ -21,7 +21,8 @@ data class RegisterRequest(
 data class AuthRegisterResponse(
     val message: String? = null,
     val user: RegisteredUser? = null,
-    val awardee: RegisteredAwardee? = null
+    val awardee: RegisteredAwardee? = null,
+    val errors: Map<String, List<String>>? = null
 )
 
 @Serializable

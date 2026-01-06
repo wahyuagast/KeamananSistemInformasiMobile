@@ -1,6 +1,9 @@
 package com.wahyuagast.keamanansisteminformasimobile.ui.screens.admin
 
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -12,38 +15,57 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.wahyuagast.keamanansisteminformasimobile.data.model.DocumentDto
+import com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository
 import com.wahyuagast.keamanansisteminformasimobile.ui.screens.student.CommonHeader
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
-import com.wahyuagast.keamanansisteminformasimobile.data.repository.DocumentRepository
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
 @Composable
 fun AdminSuratScreen(
     onBack: () -> Unit,
-    documents: List<DocumentItem>? = null,
-    onAction: (id: Int, action: String, comment: String?) -> Unit = { _, _, _ -> }
+    // Optional: if passed from nav graph, but usually we fetch here
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repo = remember { DocumentRepository() }
-    val selectedSuratState = remember { mutableStateOf<DocumentItem?>(null) }
+    
+    // State
+    var suratList by remember { mutableStateOf<List<DocumentDto>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var selectedSurat by remember { mutableStateOf<DocumentDto?>(null) }
     var activeFilter by remember { mutableStateOf("Semua") }
 
-    // Use provided documents when available, else fallback to a small sample
-    val suratList = documents ?: listOf(
-        DocumentItem(1, 11, 6, "Form 2C", "Mohon buatkan saya Form 2C", null, "Pending", "2025-12-27T06:01:28.000000Z", "2025-12-27T13:01:27.000000Z", "2025-12-27T13:01:27.000000Z"),
-        DocumentItem(2, 11, 6, null, "Mohon buatkan saya Form 2C", null, "Pending", "2025-12-28T19:30:10.000000Z", "2025-12-29T02:30:10.000000Z", "2025-12-29T02:30:10.000000Z")
-    )
+    // Fetch Data
+    LaunchedEffect(Unit) {
+        isLoading = true
+        suratList = repo.getAdminDocuments()
+        isLoading = false
+    }
+
+    // Refresh function
+    fun refreshData() {
+        scope.launch {
+            isLoading = true
+            suratList = repo.getAdminDocuments()
+            isLoading = false
+        }
+    }
+
+    val filteredList = remember(suratList, activeFilter) {
+        if (activeFilter == "Semua") suratList
+        else suratList.filter { it.status.equals(activeFilter, ignoreCase = true) }
+    }
 
     Column(
         modifier = Modifier
@@ -86,41 +108,65 @@ fun AdminSuratScreen(
             }
 
             // List
-            Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                suratList.forEach { surat ->
-                    AdminSuratCard(surat) {
-                        selectedSuratState.value = surat
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = CustomPrimary)
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (filteredList.isEmpty()) {
+                        Text("Tidak ada dokumen.", modifier = Modifier.align(Alignment.CenterHorizontally), color = CustomGray)
+                    } else {
+                        filteredList.forEach { surat ->
+                            AdminSuratCard(surat) {
+                                selectedSurat = surat
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    if (selectedSuratState.value != null) {
-        val selectedSurat = selectedSuratState.value!!
+    if (selectedSurat != null) {
         AdminSuratDetailDialog(
-            surat = selectedSurat,
-            onDismiss = { selectedSuratState.value = null },
-            onAction = { id, action, comment ->
-                // perform network action and show toast with result
+            surat = selectedSurat!!,
+            onDismiss = { selectedSurat = null },
+            onApprove = { id, file, comment ->
                 scope.launch {
-                    val ok = if (action == "approve") repo.approveDocument(id, comment) else repo.rejectDocument(id, comment)
-                    if (ok) Toast.makeText(context, "Sukses: $action", Toast.LENGTH_SHORT).show() else Toast.makeText(context, "Gagal: $action", Toast.LENGTH_SHORT).show()
+                    val success = repo.approveDocument(id, file, comment)
+                    if (success) {
+                        Toast.makeText(context, "Dokumen disetujui", Toast.LENGTH_SHORT).show()
+                        refreshData()
+                    } else {
+                        Toast.makeText(context, "Gagal menyetujui dokumen", Toast.LENGTH_SHORT).show()
+                    }
+                    selectedSurat = null
                 }
-                onAction(id, action, comment)
-                selectedSuratState.value = null
+            },
+            onReject = { id, comment ->
+                scope.launch {
+                    val success = repo.rejectDocument(id, comment)
+                    if (success) {
+                        Toast.makeText(context, "Dokumen ditolak", Toast.LENGTH_SHORT).show()
+                        refreshData()
+                    } else {
+                        Toast.makeText(context, "Gagal menolak dokumen", Toast.LENGTH_SHORT).show()
+                    }
+                    selectedSurat = null
+                }
             }
         )
     }
 }
 
 @Composable
-fun AdminSuratCard(surat: DocumentItem, onClick: () -> Unit) {
+fun AdminSuratCard(surat: DocumentDto, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -152,8 +198,8 @@ fun AdminSuratCard(surat: DocumentItem, onClick: () -> Unit) {
                         // show name if available, otherwise description
                         val title = surat.name ?: surat.description ?: "-"
                         Text(text = title, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
-                        Text(text = "ID: ${surat.user_id}", style = MaterialTheme.typography.bodySmall, color = CustomGray)
-                        Text(text = formatUploadedAt(surat.uploaded_at), style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        Text(text = "ID: ${surat.userId}", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        Text(text = formatUploadedAt(surat.uploadedAt), style = MaterialTheme.typography.bodySmall, color = CustomGray)
                     }
                 }
 
@@ -194,12 +240,32 @@ fun StatusLabel(text: String, color: Color) {
 
 @Composable
 fun AdminSuratDetailDialog(
-    surat: DocumentItem,
+    surat: DocumentDto,
     onDismiss: () -> Unit,
-    onAction: (id: Int, action: String, comment: String?) -> Unit
+    onApprove: (id: Int, file: File, comment: String) -> Unit,
+    onReject: (id: Int, comment: String) -> Unit
 ) {
     val context = LocalContext.current
     var comment by remember { mutableStateOf("") }
+    var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedFileName by remember { mutableStateOf<String?>(null) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            selectedFileUri = it
+            // Get filename
+            val cursor = context.contentResolver.query(it, null, null, null, null)
+            cursor?.use { c ->
+                if (c.moveToFirst()) {
+                    val nameIndex = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0) selectedFileName = c.getString(nameIndex)
+                }
+            }
+            if (selectedFileName == null) selectedFileName = "Selected File"
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -219,14 +285,16 @@ fun AdminSuratDetailDialog(
 
                 DetailItem("Nama / Jenis", surat.name ?: "-")
                 DetailItem("Deskripsi", surat.description ?: "-")
-                DetailItem("Uploaded At", formatUploadedAt(surat.uploaded_at))
+                DetailItem("Uploaded At", formatUploadedAt(surat.uploadedAt))
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Komentar", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                
+                // Comment Field
+                Text("Komentar Admin", style = MaterialTheme.typography.bodySmall, color = CustomGray)
                 OutlinedTextField(
                     value = comment,
                     onValueChange = { comment = it },
-                    placeholder = { Text("Tambahkan komentar...") },
+                    placeholder = { Text(if (selectedFileUri != null) "Note untuk persetujuan..." else "Note untuk penolakan...") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp),
@@ -236,39 +304,82 @@ fun AdminSuratDetailDialog(
                     )
                 )
 
+                // Appprove Section: File Selection
+                Spacer(modifier = Modifier.height(16.dp))
+                if (surat.status.equals("pending", ignoreCase = true)) {
+                    Text("File Balasan (Wajib untuk Approve)", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Button(
+                        onClick = { launcher.launch("application/pdf") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (selectedFileUri != null) CustomSuccess.copy(alpha=0.1f) else CustomBackground,
+                            contentColor = if (selectedFileUri != null) CustomSuccess else CustomBlack
+                        ),
+                        border = if (selectedFileUri != null) androidx.compose.foundation.BorderStroke(1.dp, CustomSuccess) else null,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.ArrowUpward, null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(selectedFileName ?: "Pilih Dokumen PDF")
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = CustomBackground, contentColor = CustomBlack),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Tutup")
-                    }
-                    Button(
                         onClick = {
-                            onAction(surat.id, "reject", comment.ifBlank { null })
-                            Toast.makeText(context, "Ditolak", Toast.LENGTH_SHORT).show()
+                             if (comment.isBlank()) {
+                                 Toast.makeText(context, "Note wajib diisi untuk penolakan", Toast.LENGTH_SHORT).show()
+                             } else {
+                                onReject(surat.id, comment)
+                             }
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = CustomDanger),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = surat.status.equals("pending", ignoreCase = true)
                     ) {
                         Text("Tolak")
                     }
                     Button(
                         onClick = {
-                            onAction(surat.id, "approve", comment.ifBlank { null })
-                            Toast.makeText(context, "Disetujui", Toast.LENGTH_SHORT).show()
+                            if (selectedFileUri != null && comment.isNotBlank()) {
+                                // Convert Uri to File
+                                try {
+                                    val inputStream = context.contentResolver.openInputStream(selectedFileUri!!)
+                                    val tempFile = File(context.cacheDir, selectedFileName ?: "temp_surat.pdf")
+                                    val outputStream = FileOutputStream(tempFile)
+                                    inputStream?.copyTo(outputStream)
+                                    inputStream?.close()
+                                    outputStream.close()
+                                    
+                                    onApprove(surat.id, tempFile, comment)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Gagal memproses file", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "Pilih file dan isi note untuk menyetujui", Toast.LENGTH_SHORT).show()
+                            }
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(containerColor = CustomSuccess),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = surat.status.equals("pending", ignoreCase = true)
                     ) {
                         Text("Setujui")
                     }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                 Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = CustomGray),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Tutup")
                 }
             }
         }
@@ -283,28 +394,15 @@ fun DetailItem(label: String, value: String) {
     }
 }
 
-// New data model matching the API response
-data class DocumentItem(
-    val id: Int,
-    val user_id: Int,
-    val document_type_id: Int,
-    val name: String?,
-    val description: String?,
-    val file_path: String?,
-    val status: String?,
-    val uploaded_at: String?,
-    val created_at: String?,
-    val updated_at: String?
-)
-
 // helper to format ISO offset datetimes gracefully
 fun formatUploadedAt(value: String?): String {
     if (value.isNullOrBlank()) return "-"
     return try {
+        // Handle potentially different formats if needed, but ISO-8601 is standad
         val odt = OffsetDateTime.parse(value)
         odt.format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"))
     } catch (_: Exception) {
-        // fallback: return original
+        // fallback: return original or try SimpleDateFormat if needed
         value
     }
 }

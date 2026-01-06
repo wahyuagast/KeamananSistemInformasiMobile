@@ -214,6 +214,20 @@ fun AdminDashboardScreen(
                     onClick = { onNavigate("admin-mahasiswa") }
                 )
             }
+            Spacer(modifier = Modifier.height(12.dp))
+            // Second Menu Row
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                AdminMenuCard(
+                    modifier = Modifier.weight(1f),
+                    icon = Icons.Default.List,
+                    color = CustomWarning,
+                    title = "Data Pendaftaran",
+                    subtitle = awardeeCount?.let { "$it data" } ?: "Memuat...",
+                    onClick = { onNavigate("admin-registration-list") }
+                )
+                // Spacer for now if we don't have a 4th item, or make it take full width
+                Spacer(modifier = Modifier.weight(1f))
+            }
         }
     }
 }

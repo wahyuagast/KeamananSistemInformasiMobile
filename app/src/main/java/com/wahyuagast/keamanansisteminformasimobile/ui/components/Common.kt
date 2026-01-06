@@ -57,7 +57,8 @@ fun CustomTextField(
     placeholder: String,
     modifier: Modifier = Modifier,
     isPassword: Boolean = false,
-    errorMessage: String? = null
+    errorMessage: String? = null,
+    enabled: Boolean = true
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -90,6 +91,7 @@ fun CustomTextField(
         isError = errorMessage != null,
         supportingText = if (errorMessage != null) {
             { Text(text = errorMessage, color = MaterialTheme.colorScheme.error) }
-        } else null
+        } else null,
+        enabled = enabled
     )
 }

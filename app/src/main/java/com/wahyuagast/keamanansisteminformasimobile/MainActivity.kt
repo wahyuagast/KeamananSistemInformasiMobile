@@ -124,6 +124,15 @@ class MainActivity : ComponentActivity() {
                         AdminMahasiswaScreen(onBack = { navController.popBackStack() })
                     }
                     
+                    composable("admin-registration-list") {
+                        AdminRegistrationListScreen(
+                            onBack = { navController.popBackStack() },
+                            onNavigateToDetail = { id ->
+                                navController.navigate("admin-registration/$id")
+                            }
+                        )
+                    }
+
                     composable("admin-registration/{id}") { backStackEntry ->
                         val id = backStackEntry.arguments?.getString("id")?.toIntOrNull() ?: 0
                         AdminRegistrationScreen(registrationId = id, onBack = { navController.popBackStack() })

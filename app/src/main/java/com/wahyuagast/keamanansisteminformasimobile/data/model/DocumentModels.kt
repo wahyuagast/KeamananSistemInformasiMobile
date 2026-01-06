@@ -48,7 +48,7 @@ data class AdminDocumentsResponse(
 
 @Serializable
 data class AdminActionRequest(
-    @SerialName("admin_comment") val adminComment: String? = null
+    @SerialName("admin_note") val adminNote: String? = null
 )
 
 @Serializable

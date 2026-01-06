@@ -33,6 +33,11 @@ android {
             "API_BASE_URL",
             "\"${localProperties.getProperty("API_BASE_URL", "https://your-api-url.com")}\""
         )
+        buildConfigField(
+            "String",
+            "REGISTRATION_TOKEN",
+            "\"${localProperties.getProperty("REGISTRATION_TOKEN", "")}\""
+        )
     }
 
     buildTypes {

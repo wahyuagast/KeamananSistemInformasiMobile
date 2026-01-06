@@ -16,7 +16,10 @@ interface ApiService {
 
     // Register endpoint
     @POST("register")
-    suspend fun register(@Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterRequest): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.AuthRegisterResponse>
+    suspend fun register(
+        @Body request: com.wahyuagast.keamanansisteminformasimobile.data.model.RegisterRequest,
+        @retrofit2.http.Header("Authorization") token: String? = null
+    ): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.AuthRegisterResponse>
 
     @GET("profile")
     suspend fun getProfile(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.ProfileResponse>
@@ -77,8 +80,13 @@ interface ApiService {
     suspend fun getAdminDocuments(): Response<com.wahyuagast.keamanansisteminformasimobile.data.model.AdminDocumentsResponse>
 
     // Admin approve/reject endpoints
+    @Multipart
     @POST("admin/documents/{id}/approve")
-    suspend fun approveDocument(@Path("id") id: Int, @Body body: com.wahyuagast.keamanansisteminformasimobile.data.model.AdminActionRequest? = null): Response<Unit>
+    suspend fun approveDocument(
+        @Path("id") id: Int,
+        @Part("admin_note") adminNote: okhttp3.RequestBody,
+        @Part document: okhttp3.MultipartBody.Part
+    ): Response<Unit>
 
     @POST("admin/documents/{id}/reject")
     suspend fun rejectDocument(@Path("id") id: Int, @Body body: com.wahyuagast.keamanansisteminformasimobile.data.model.AdminActionRequest? = null): Response<Unit>

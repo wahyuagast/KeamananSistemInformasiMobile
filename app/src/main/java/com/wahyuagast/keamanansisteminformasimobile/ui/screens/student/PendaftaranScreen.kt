@@ -17,9 +17,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.material3.MenuAnchorType
 import com.wahyuagast.keamanansisteminformasimobile.ui.theme.*
 import com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel
+import androidx.compose.material3.MenuAnchorType
 import com.wahyuagast.keamanansisteminformasimobile.utils.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,19 +31,20 @@ fun PendaftaranScreen(
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
         viewModel.loadRegistrationStatus()
+        viewModel.loadMitras() // ensure mitras are loaded for dropdown fallback
+        viewModel.loadPeriods()
     }
     val regState = viewModel.registrationState
     val formState = viewModel.formSubmissionState
+    val mitraState = viewModel.mitraState
 
     val context = androidx.compose.ui.platform.LocalContext.current
 
     // Form State
-    var selectedMitra by remember {
-        mutableStateOf<com.wahyuagast.keamanansisteminformasimobile.data.model.MitraDto?>(
-            null
-        )
-    }
+    var selectedMitraId by remember { mutableStateOf<Int?>(null) }
+    var selectedMitraName by remember { mutableStateOf("") }
     var selectedPeriode by remember { mutableStateOf<String>("") } // Using ID
+    var selectedPeriodeName by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
 
@@ -61,6 +62,7 @@ fun PendaftaranScreen(
     }
     val docTypesState = viewModel.documentTypesState
     val uploadState = viewModel.uploadDocumentState
+    val periodsState = viewModel.periodsState
 
     // File Picker & Confirmation
     var activeTypeId by remember { mutableStateOf<Int?>(null) }
@@ -215,13 +217,15 @@ fun PendaftaranScreen(
                             trackColor = CustomBackground,
                             strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
                         )
-                        data.message?.let { msg ->
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = msg,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = CustomGray
-                            )
+                        if (!data.statusRegistrasi.equals("diterima", ignoreCase = true)) {
+                            data.message?.let { msg ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = msg,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CustomGray
+                                )
+                            }
                         }
                     }
                 }
@@ -378,6 +382,62 @@ fun PendaftaranScreen(
             }
 
             // 4. Form Pendaftaran Online
+            if (regState is Resource.Success && !regState.data.statusRegistrasi.equals("diterima", ignoreCase = true)) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Informasi Pendaftaran",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = CustomBlack
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        if (regState.data.mitras.isNotEmpty()) {
+                            Text(
+                                text = "Mitra:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = CustomBlack
+                            )
+                            regState.data.mitras.forEach { mitra ->
+                                Text(
+                                    text = "• ${mitra.partnerName ?: "-"} ${if (!mitra.address.isNullOrEmpty()) "(${mitra.address})" else ""}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CustomBlack,
+                                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        if (regState.data.periods.isNotEmpty()) {
+                            Text(
+                                text = "Periode:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = CustomBlack
+                            )
+                            regState.data.periods.forEach { period ->
+                                Text(
+                                    text = "• ${period.name ?: "-"} (${period.startDate ?: "-"} s/d ${period.endDate ?: "-"})",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = CustomBlack,
+                                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 5. Form Pendaftaran Online
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
@@ -393,10 +453,20 @@ fun PendaftaranScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // Enable form only when the user hasn't registered yet (status 'belum_terdaftar')
                     val isFormEnabled = if (regState is Resource.Success) {
-                        !regState.data.statusRegistrasi.equals("diterima", ignoreCase = true)
+                        val st = regState.data.statusRegistrasi
+                        st.isBlank() || st.contains("belum", ignoreCase = true)
                     } else {
+                        // If we don't have registration state yet, allow the user to interact (optimistic)
                         true
+                    }
+
+                    // If form is disabled, show a small helper to explain why
+                    if (!isFormEnabled && regState is Resource.Success) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = "Formulir tidak dapat diisi karena status pendaftaran: ${regState.data.statusRegistrasi}", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
                     // Mitra Dropdown
@@ -405,7 +475,7 @@ fun PendaftaranScreen(
                         onExpandedChange = { if (isFormEnabled) showMitraDropdown = !showMitraDropdown }
                     ) {
                         OutlinedTextField(
-                            value = selectedMitra?.partnerName ?: "",
+                            value = selectedMitraName,
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Pilih Mitra") },
@@ -427,12 +497,25 @@ fun PendaftaranScreen(
                             expanded = showMitraDropdown,
                             onDismissRequest = { showMitraDropdown = false }
                         ) {
-                            if (regState is Resource.Success) {
+                            // Prefer mitras from registration status (they may include additional info), otherwise fallback to global mitraState
+                            if (regState is Resource.Success && regState.data.mitras.isNotEmpty()) {
                                 regState.data.mitras.forEach { mitra ->
                                     DropdownMenuItem(
                                         text = { Text(mitra.partnerName ?: "") },
                                         onClick = {
-                                            selectedMitra = mitra
+                                            selectedMitraId = mitra.id
+                                            selectedMitraName = mitra.partnerName ?: ""
+                                            showMitraDropdown = false
+                                        }
+                                    )
+                                }
+                            } else if (mitraState is Resource.Success) {
+                                mitraState.data.mitra.forEach { mitra ->
+                                    DropdownMenuItem(
+                                        text = { Text(mitra.partnerName) },
+                                        onClick = {
+                                            selectedMitraId = mitra.id
+                                            selectedMitraName = mitra.partnerName
                                             showMitraDropdown = false
                                         }
                                     )
@@ -448,11 +531,6 @@ fun PendaftaranScreen(
                         expanded = showPeriodeDropdown,
                         onExpandedChange = { if (isFormEnabled) showPeriodeDropdown = !showPeriodeDropdown }
                     ) {
-                        val selectedPeriodeName = if (regState is Resource.Success) {
-                            regState.data.periods.find { it.id.toString() == selectedPeriode }?.name
-                                ?: ""
-                        } else ""
-
                         OutlinedTextField(
                             value = selectedPeriodeName,
                             onValueChange = {},
@@ -476,12 +554,20 @@ fun PendaftaranScreen(
                             expanded = showPeriodeDropdown,
                             onDismissRequest = { showPeriodeDropdown = false }
                         ) {
-                            if (regState is Resource.Success) {
-                                regState.data.periods.forEach { periode ->
+                            // Prefer periods from registrationState, otherwise fallback to periodsState
+                            val periodsList = when {
+                                regState is Resource.Success && regState.data.periods.isNotEmpty() -> regState.data.periods
+                                periodsState is Resource.Success && periodsState.data.periods.isNotEmpty() -> periodsState.data.periods
+                                else -> emptyList()
+                            }
+
+                            if (periodsList.isNotEmpty()) {
+                                periodsList.forEach { periode ->
                                     DropdownMenuItem(
                                         text = { Text(periode.name ?: "") },
                                         onClick = {
                                             selectedPeriode = periode.id.toString()
+                                            selectedPeriodeName = periode.name ?: ""
                                             // Auto-fill dates
                                             startDate = periode.startDate?.replace("-", "/") ?: ""
                                             endDate = periode.endDate?.replace("-", "/") ?: ""
@@ -489,6 +575,13 @@ fun PendaftaranScreen(
                                         }
                                     )
                                 }
+                            } else {
+                                // No periods available: show a disabled info item
+                                DropdownMenuItem(
+                                    text = { Text("Tidak ada periode tersedia") },
+                                    onClick = { /* no-op */ },
+                                    enabled = false
+                                )
                             }
                         }
                     }
@@ -602,9 +695,9 @@ fun PendaftaranScreen(
 
                     Button(
                         onClick = {
-                            if (selectedMitra != null && selectedPeriode.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()) {
+                            if (selectedMitraId != null && selectedPeriode.isNotEmpty() && startDate.isNotEmpty() && endDate.isNotEmpty()) {
                                 viewModel.submitRegistrationForm(
-                                    selectedMitra!!.id.toString(),
+                                    selectedMitraId.toString(),
                                     selectedPeriode,
                                     startDate,
                                     endDate

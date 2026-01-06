@@ -54,9 +54,9 @@ class AuthRepository(private val tokenManager: TokenManager) {
     }
 
     // Register method
-    suspend fun register(request: RegisterRequest): Resource<AuthRegisterResponse> {
+    suspend fun register(request: RegisterRequest, token: String? = null): Resource<AuthRegisterResponse> {
         return try {
-            val resp = apiService.register(request)
+            val resp = apiService.register(request, token)
             if (resp.isSuccessful && resp.body() != null) {
                 Resource.Success(resp.body()!!)
             } else {
@@ -64,7 +64,10 @@ class AuthRepository(private val tokenManager: TokenManager) {
                 if (err != null) {
                     try {
                         val parsed = json.decodeFromString<AuthRegisterResponse>(err)
-                        Resource.Error(parsed.message ?: resp.message())
+                        Resource.Error(
+                            message = parsed.message ?: resp.message(),
+                            errors = parsed.errors
+                        )
                     } catch (e: Exception) {
                         Resource.Error(resp.message())
                     }

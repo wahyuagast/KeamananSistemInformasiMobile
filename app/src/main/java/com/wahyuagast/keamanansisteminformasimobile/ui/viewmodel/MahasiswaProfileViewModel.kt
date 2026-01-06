@@ -43,6 +43,9 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
     var updateState by mutableStateOf<Resource<com.wahyuagast.keamanansisteminformasimobile.data.model.UpdateProfileResponse?>>(Resource.Idle)
         private set
 
+    var periodsState by mutableStateOf<Resource<com.wahyuagast.keamanansisteminformasimobile.data.model.PeriodeResponse>>(Resource.Idle)
+        private set
+
     fun loadProfile() {
         viewModelScope.launch {
             profileState = Resource.Loading
@@ -75,6 +78,13 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
         }
     }
     
+    fun loadPeriods() {
+        viewModelScope.launch {
+            periodsState = Resource.Loading
+            periodsState = registrationRepository.getPeriods()
+        }
+    }
+
     fun submitDocumentRequest(documentTypeId: Int, description: String) {
         viewModelScope.launch {
             documentSubmissionState = Resource.Loading

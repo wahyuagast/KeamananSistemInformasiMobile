@@ -57,6 +57,19 @@ class RegistrationRepository {
         }
     }
 
+    suspend fun getPeriods(): Resource<com.wahyuagast.keamanansisteminformasimobile.data.model.PeriodeResponse> {
+        return try {
+            val resp = api.getPeriods()
+            if (resp.isSuccessful && resp.body() != null) {
+                Resource.Success(resp.body()!!)
+            } else {
+                Resource.Error(resp.message())
+            }
+        } catch (e: Exception) {
+            Resource.Error(e.message ?: "Unknown error")
+        }
+    }
+
     suspend fun submitRegistrationForm(
         fullname: String, nim: String, email: String,
         mitraId: String, periodeId: String, startDate: String, endDate: String
