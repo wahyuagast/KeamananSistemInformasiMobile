@@ -214,25 +214,39 @@ fun MahasiswaDashboardScreen(
                         if (timeline.isEmpty()) {
                             Text("Tidak ada deadline", style = MaterialTheme.typography.bodySmall, color = CustomGray)
                         } else {
-                            // pick the timeline item closest to now (by endDate then startDate)
+                            // find up to 3 timeline items nearest to now (by endDate/startDate/createdAt)
                             val nowMillis = System.currentTimeMillis()
-                            val nearest = timeline.minByOrNull { item ->
+                            val itemsWithDate = timeline.mapNotNull { item ->
                                 val d = parseToDate(item.endDate ?: item.startDate ?: item.createdAt)
-                                if (d != null) kotlin.math.abs(nowMillis - d.time).toDouble() else Double.MAX_VALUE
+                                if (d != null) Pair(item, d) else null
                             }
 
-                            if (nearest != null) {
-                                val whenDate = parseToDate(nearest.endDate ?: nearest.startDate ?: nearest.createdAt)
-                                val relative = formatRelative(whenDate)
-                                TimelineItem(
-                                    title = nearest.title ?: "(tidak berjudul)",
-                                    subtitle = relative,
-                                    color = if (whenDate != null && whenDate.time < System.currentTimeMillis()) CustomDanger else CustomWarning,
-                                    isLast = true
-                                )
-                            }
-                        }
-                    }
+                            if (itemsWithDate.isEmpty()) {
+                                Text("Tidak ada deadline", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+                            } else {
+                                val nearestList = itemsWithDate.sortedBy { pair -> kotlin.math.abs(nowMillis - pair.second.time) }.take(3)
+                                val periodsState = viewModel.periodsState
+                                nearestList.forEachIndexed { idx, (item, date) ->
+                                    val relative = formatRelative(date)
+                                    // resolve periode name if available
+                                    val periodeName = when (periodsState) {
+                                        is Resource.Success -> periodsState.data.periods.find { it.id == item.periodeId }?.name
+                                        else -> null
+                                    }
+                                    TimelineItem(
+                                        title = item.title ?: "(tidak berjudul)",
+                                        subtitle = relative,
+                                        description = item.description,
+                                        periode = periodeName,
+                                        color = if (date.time < System.currentTimeMillis()) CustomDanger else CustomWarning,
+                                        isLast = idx == nearestList.size - 1,
+                                        onClick = { onNavigate("monev") }
+                                    )
+                                }
+                             }
+                         }
+                     }
+
                     is Resource.Error -> {
                         Text(text = "Gagal memuat deadline: ${monevState.message}", style = MaterialTheme.typography.bodySmall, color = CustomDanger)
                     }
@@ -344,10 +358,19 @@ fun DashboardCard(
 }
 
 @Composable
-fun TimelineItem(title: String, subtitle: String, color: Color, isLast: Boolean) {
-    Row(
+fun TimelineItem(
+    title: String,
+    subtitle: String,
+    description: String? = null,
+    periode: String? = null,
+    color: Color,
+    isLast: Boolean,
+    onClick: (() -> Unit)? = null
+) {
+     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(bottom = if (isLast) 0.dp else 12.dp)
     ) {
          Box(
@@ -355,13 +378,24 @@ fun TimelineItem(title: String, subtitle: String, color: Color, isLast: Boolean)
          )
          Spacer(modifier = Modifier.width(12.dp))
          Column(modifier = Modifier.weight(1f)) {
-             Text(text = title, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
-             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = CustomGray)
-             if (!isLast) {
-                 Spacer(modifier = Modifier.height(12.dp))
-                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(CustomBackground))
-             }
-         }
+            Text(text = title, style = MaterialTheme.typography.bodyMedium, color = CustomBlack)
+            Spacer(modifier = Modifier.height(4.dp))
+            // subtitle (relative)
+            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = CustomGray)
+            // optional periode and description
+            periode?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = "Periode: $it", style = MaterialTheme.typography.bodySmall, color = CustomGray)
+            }
+            description?.let {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = it, style = MaterialTheme.typography.bodySmall, color = CustomBlack)
+            }
+            if (!isLast) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(CustomBackground))
+            }
+        }
     }
 }
 
@@ -425,7 +459,7 @@ private fun parseToDate(dateStr: String?): Date? {
     return null
 }
 
-// Helper: format relative time like "Due 3 days ago" or "Due in 5 days"; if date is null show unknown
+// Helper: format relative time in Indonesian like "Jatuh tempo 3 hari yang lalu" or "Jatuh tempo dalam 5 hari"; if date is null show unknown
 private fun formatRelative(date: Date?): String {
     if (date == null) return "Waktu tidak tersedia"
     val now = System.currentTimeMillis()
@@ -433,11 +467,11 @@ private fun formatRelative(date: Date?): String {
     val absDays = kotlin.math.abs(secs / (60 * 60 * 24))
     return if (secs > 0) {
         // past
-        if (absDays < 30) "Due $absDays days ago" else "Due ${absDays / 30} months ago"
+        if (absDays < 30) "Jatuh tempo $absDays hari yang lalu" else "Jatuh tempo ${absDays / 30} bulan yang lalu"
     } else if (secs < 0) {
         val days = absDays
-        if (days < 30) "Due in $days days" else "Due in ${days / 30} months"
+        if (days < 30) "Jatuh tempo dalam $days hari" else "Jatuh tempo dalam ${days / 30} bulan"
     } else {
-        "Due today"
+        "Jatuh tempo hari ini"
     }
 }
