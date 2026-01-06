@@ -44,7 +44,7 @@ fun AdminRegistrationScreen(registrationId: Int, onBack: () -> Unit) {
 
     Column(modifier = Modifier.fillMaxSize().background(CustomBackground)) {
         TopAppBar(
-            title = { Text("Detail Registrasi") },
+            title = { Text("Detail Registrasi", style = MaterialTheme.typography.titleLarge) },
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -55,11 +55,11 @@ fun AdminRegistrationScreen(registrationId: Int, onBack: () -> Unit) {
 
         Column(modifier = Modifier.padding(16.dp)) {
             if (isLoading) {
-                Text("Memuat...")
+                Text("Memuat...", style = MaterialTheme.typography.bodyMedium)
             } else if (error != null) {
-                Text("Error: $error")
+                Text("Error: $error", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
             } else if (register == null) {
-                Text("Registrasi tidak ditemukan")
+                Text("Registrasi tidak ditemukan", style = MaterialTheme.typography.bodyMedium)
             } else {
                 val r = register!!
                 Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -67,13 +67,13 @@ fun AdminRegistrationScreen(registrationId: Int, onBack: () -> Unit) {
                         Text(r.fullname ?: "-", style = MaterialTheme.typography.titleMedium)
                         Text(r.nim ?: "-", style = MaterialTheme.typography.bodySmall, color = CustomGray)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Periode: ${r.periode?.name ?: "-"}")
-                        Text("Mitra: ${r.mitra?.partnerName ?: "-"}")
+                        Text("Periode: ${r.periode?.name ?: "-"}", style = MaterialTheme.typography.bodyMedium)
+                        Text("Mitra: ${r.mitra?.partnerName ?: "-"}", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("Start: ${r.startDate ?: "-"}")
-                        Text("End: ${r.endDate ?: "-"}")
+                        Text("Start: ${r.startDate ?: "-"}", style = MaterialTheme.typography.bodyMedium)
+                        Text("End: ${r.endDate ?: "-"}", style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("Status: ${r.status ?: "-"}")
+                        Text("Status: ${r.status ?: "-"}", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
 
@@ -81,7 +81,7 @@ fun AdminRegistrationScreen(registrationId: Int, onBack: () -> Unit) {
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { onBack() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = CustomBackground)) {
-                        Text("Tutup")
+                        Text("Tutup", style = MaterialTheme.typography.labelLarge)
                     }
                     Button(onClick = {
                         scope.launch {
@@ -94,7 +94,7 @@ fun AdminRegistrationScreen(registrationId: Int, onBack: () -> Unit) {
                             }
                         }
                     }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = CustomDanger)) {
-                        Text("Tolak")
+                        Text("Tolak", style = MaterialTheme.typography.labelLarge)
                     }
                     Button(onClick = {
                         scope.launch {
@@ -107,11 +107,10 @@ fun AdminRegistrationScreen(registrationId: Int, onBack: () -> Unit) {
                             }
                         }
                     }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = CustomSuccess)) {
-                        Text("Setujui")
+                        Text("Setujui", style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }
         }
     }
 }
-

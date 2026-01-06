@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import com.wahyuagast.keamanansisteminformasimobile.ui.theme.Inter
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wahyuagast.keamanansisteminformasimobile.data.model.User
@@ -75,6 +76,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        // Restore original header: circle + School icon
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -88,19 +90,19 @@ fun LoginScreen(
                 modifier = Modifier.size(40.dp)
             )
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
             text = "SIMOPKL",
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Inter),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
-        
+
         Text(
             text = "Masuk ke akun Anda",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Inter),
             color = CustomGray
         )
 
@@ -112,11 +114,11 @@ fun LoginScreen(
                 .background(Color.White, RoundedCornerShape(12.dp))
                 .padding(vertical = 8.dp)
         ) {
-             CustomTextField(
+            CustomTextField(
                 value = viewModel.email,
-                onValueChange = { 
+                onValueChange = {
                     viewModel.onEmailChange(it)
-                    emailError = null 
+                    emailError = null
                 },
                 placeholder = "Email",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -124,7 +126,7 @@ fun LoginScreen(
             )
             CustomTextField(
                 value = viewModel.password,
-                onValueChange = { 
+                onValueChange = {
                     viewModel.onPasswordChange(it)
                     passwordError = null
                 },
@@ -134,7 +136,7 @@ fun LoginScreen(
                 errorMessage = passwordError
             )
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
 
         if (loginState is Resource.Loading) {
@@ -156,7 +158,7 @@ fun LoginScreen(
                         passwordError = "Password tidak boleh kosong"
                         ok = false
                     }
-                    
+
                     if (ok) viewModel.login()
                 }
             )
@@ -168,7 +170,7 @@ fun LoginScreen(
             text = "Buat akun",
             color = CustomPrimary,
             modifier = Modifier.clickable { onNavigateToRegister() },
-            style = MaterialTheme.typography.bodyMedium
+            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Inter)
         )
     }
 }

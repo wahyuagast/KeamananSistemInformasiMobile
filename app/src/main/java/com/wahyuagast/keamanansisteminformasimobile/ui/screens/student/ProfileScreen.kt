@@ -102,8 +102,8 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
-                .padding(top = 24.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -352,3 +352,5 @@ private fun BasicTextFieldCompat(value: String, onValueChange: (String) -> Unit)
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = CustomBlack)
     )
 }
+// Ensure top of screen respects status bar and avoids extra blank top padding
+// For header containers in this screen, use Modifier.statusBarsPadding() where appropriate.

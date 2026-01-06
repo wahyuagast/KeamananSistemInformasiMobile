@@ -94,7 +94,7 @@ fun AdminProfileScreen(
         // App Bar
         Column(
             modifier = Modifier.fillMaxWidth().background(Color.White)
-                .padding(horizontal = 16.dp, vertical = 12.dp).padding(top = 24.dp)
+                .statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
              Row(
                 modifier = Modifier.fillMaxWidth(),

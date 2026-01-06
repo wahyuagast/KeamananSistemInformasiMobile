@@ -90,7 +90,7 @@ fun AdminSuratScreen(
                     FilterChip(
                         selected = selected,
                         onClick = { activeFilter = filter },
-                        label = { Text(filter) },
+                        label = { Text(filter, style = MaterialTheme.typography.labelSmall) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = CustomPrimary,
                             selectedLabelColor = Color.White,
@@ -120,7 +120,7 @@ fun AdminSuratScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (filteredList.isEmpty()) {
-                        Text("Tidak ada dokumen.", modifier = Modifier.align(Alignment.CenterHorizontally), color = CustomGray)
+                        Text("Tidak ada dokumen.", modifier = Modifier.align(Alignment.CenterHorizontally), color = CustomGray, style = MaterialTheme.typography.bodyMedium)
                     } else {
                         filteredList.forEach { surat ->
                             AdminSuratCard(surat) {
@@ -321,7 +321,7 @@ fun AdminSuratDetailDialog(
                     ) {
                         Icon(Icons.Default.ArrowUpward, null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(selectedFileName ?: "Pilih Dokumen PDF")
+                        Text(selectedFileName ?: "Pilih Dokumen PDF", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
 
@@ -341,9 +341,9 @@ fun AdminSuratDetailDialog(
                         shape = RoundedCornerShape(12.dp),
                         enabled = surat.status.equals("pending", ignoreCase = true)
                     ) {
-                        Text("Tolak")
-                    }
-                    Button(
+                        Text("Tolak", style = MaterialTheme.typography.labelLarge)
+                     }
+                     Button(
                         onClick = {
                             if (selectedFileUri != null && comment.isNotBlank()) {
                                 // Convert Uri to File
@@ -368,22 +368,22 @@ fun AdminSuratDetailDialog(
                         shape = RoundedCornerShape(12.dp),
                         enabled = surat.status.equals("pending", ignoreCase = true)
                     ) {
-                        Text("Setujui")
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                 Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = CustomGray),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Tutup")
-                }
-            }
-        }
-    }
+                        Text("Setujui", style = MaterialTheme.typography.labelLarge)
+                     }
+                 }
+
+                 Spacer(modifier = Modifier.height(8.dp))
+                  Button(
+                     onClick = onDismiss,
+                     modifier = Modifier.fillMaxWidth(),
+                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = CustomGray),
+                     shape = RoundedCornerShape(12.dp)
+                 ) {
+                    Text("Tutup", style = MaterialTheme.typography.labelLarge)
+                 }
+             }
+         }
+     }
 }
 
 @Composable

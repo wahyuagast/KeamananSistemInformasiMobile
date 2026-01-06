@@ -10,6 +10,8 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalTextStyle
 
 private val DarkColorScheme = darkColorScheme(
     primary = CustomPrimary,
@@ -53,6 +55,11 @@ fun KeamananSistemInformasiMobileTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        content = content
+        content = {
+            // Ensure any Text() that doesn't pass an explicit style still uses our Material typography (Inter)
+            CompositionLocalProvider(LocalTextStyle provides Typography.bodyMedium) {
+                content()
+            }
+        }
     )
 }

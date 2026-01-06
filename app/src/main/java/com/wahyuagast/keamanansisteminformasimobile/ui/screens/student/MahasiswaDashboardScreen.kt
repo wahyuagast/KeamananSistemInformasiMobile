@@ -66,15 +66,15 @@ fun MahasiswaDashboardScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.White)
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-                .padding(top = 24.dp) // Extra top padding
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Left: avatar + texts. Use weight so the right-side icon button keeps space.
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Box(
                         modifier = Modifier
                             .size(48.dp)
@@ -89,25 +89,28 @@ fun MahasiswaDashboardScreen(
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Column {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = "Halo,",
                             style = MaterialTheme.typography.bodySmall,
-                            color = CustomGray
+                            color = CustomGray,
+                            maxLines = 1
                         )
                         if (state is Resource.Loading) {
-                             Box(modifier = Modifier.width(100.dp).height(20.dp).background(CustomGray.copy(alpha=0.2f), RoundedCornerShape(4.dp)))
+                            Box(modifier = Modifier.width(120.dp).height(20.dp).background(CustomGray.copy(alpha = 0.2f), RoundedCornerShape(4.dp)))
                         } else {
                             Text(
                                 text = userName,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = CustomBlack
+                                color = CustomBlack,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
                     }
                 }
-                
+
                 IconButton(
                     onClick = {
                         viewModel.logout(onLogout)
@@ -125,7 +128,7 @@ fun MahasiswaDashboardScreen(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color(0xFFC6C6C8)))
 
         // Content Scrollable Area

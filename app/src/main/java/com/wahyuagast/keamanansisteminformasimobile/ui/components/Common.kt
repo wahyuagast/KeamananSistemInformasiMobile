@@ -46,7 +46,7 @@ fun PrimaryButton(
             contentColor = Color.White
         )
     ) {
-        Text(text = text)
+        Text(text = text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -65,7 +65,7 @@ fun CustomTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = { Text(text = placeholder, color = CustomGray) },
+        placeholder = { Text(text = placeholder, style = MaterialTheme.typography.bodyMedium, color = CustomGray) },
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = TextFieldDefaults.colors(
@@ -90,7 +90,7 @@ fun CustomTextField(
         } else null,
         isError = errorMessage != null,
         supportingText = if (errorMessage != null) {
-            { Text(text = errorMessage, color = MaterialTheme.colorScheme.error) }
+            { Text(text = errorMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
         } else null,
         enabled = enabled
     )
