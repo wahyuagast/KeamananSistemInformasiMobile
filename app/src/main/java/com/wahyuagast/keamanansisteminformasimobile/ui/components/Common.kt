@@ -77,6 +77,14 @@ fun CustomTextField(
         ),
         singleLine = true,
         visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = if (isPassword) {
+            androidx.compose.foundation.text.KeyboardOptions(
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
+                autoCorrect = false
+            )
+        } else {
+            androidx.compose.foundation.text.KeyboardOptions.Default
+        },
         trailingIcon = if (isPassword) {
             {
                 val image = if (passwordVisible)
