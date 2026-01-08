@@ -26,6 +26,34 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
     private val registrationRepository = RegistrationRepository()
     private val documentRepository = DocumentRepository()
 
+    companion object {
+        /**
+         * Security: Clean up old temporary upload files that may have been orphaned.
+         * This should be called on app start to ensure no sensitive data persists.
+         * Files older than 24 hours are removed.
+         */
+        fun cleanupOldTempFiles(context: android.content.Context) {
+            try {
+                val cacheDir = context.cacheDir
+                val oneDayInMillis = 24 * 60 * 60 * 1000L
+                val now = System.currentTimeMillis()
+
+                cacheDir.listFiles()?.forEach { file ->
+                    if (file.name.startsWith("upload_") && file.name.endsWith(".tmp")) {
+                        if (now - file.lastModified() > oneDayInMillis) {
+                            file.delete()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                com.wahyuagast.keamanansisteminformasimobile.utils.AppLog.w(
+                    "MahasiswaProfileVM",
+                    "Cleanup failed"
+                )
+            }
+        }
+    }
+
     var profileState by mutableStateOf<Resource<ProfileResponse>>(
         Resource.Loading
     )
@@ -231,10 +259,18 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
     fun uploadDocument(uri: android.net.Uri, documentTypeId: Int) {
         viewModelScope.launch {
             uploadDocumentState = Resource.Loading
-            try {
-                val context = getApplication<Application>()
-                val contentResolver = context.contentResolver
 
+            // Security: Use app-private cache directory with unique filename
+            val context = getApplication<Application>()
+            val contentResolver = context.contentResolver
+
+            // Create temp file with unique name to avoid collisions
+            val tempFile = File(
+                context.cacheDir, // App-private storage (not accessible by other apps)
+                "upload_${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}.tmp"
+            )
+
+            try {
                 // Validate MIME Type
                 val type = contentResolver.getType(uri)
                 if (type != "application/pdf") {
@@ -242,39 +278,51 @@ class MahasiswaProfileViewModel(application: Application) : AndroidViewModel(app
                     return@launch
                 }
 
-                // Copy to temp file
+                // Copy URI content to temp file with proper resource management
                 val inputStream = contentResolver.openInputStream(uri)
-                if (inputStream != null) {
-                    val tempFile = File.createTempFile("upload", ".pdf", context.cacheDir)
-                    tempFile.outputStream().use { output ->
-                        inputStream.copyTo(output)
-                    }
-                    inputStream.close()
-
-                    // Validate Size (Max 2MB = 2 * 1024 * 1024 bytes)
-                    if (tempFile.length() > 2 * 1024 * 1024) {
-                        uploadDocumentState = Resource.Error("Ukuran file maksimal 2MB")
-                        tempFile.delete()
-                        return@launch
-                    }
-
-                    // Upload
-                    uploadDocumentState =
-                        documentRepository.uploadDocument(tempFile, documentTypeId)
-
-                    // Cleanup
-                    if (tempFile.exists()) tempFile.delete()
-
-                    // Refresh status on success
-                    if (uploadDocumentState is Resource.Success) {
-                        loadRegistrationStatus()
-                    }
-                } else {
+                if (inputStream == null) {
                     uploadDocumentState = Resource.Error("Gagal membaca file")
+                    return@launch
+                }
+
+                inputStream.use { input ->
+                    tempFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+
+                // Validate Size (Max 2MB = 2 * 1024 * 1024 bytes)
+                if (tempFile.length() > 2 * 1024 * 1024) {
+                    uploadDocumentState = Resource.Error("Ukuran file maksimal 2MB")
+                    return@launch
+                }
+
+                // Upload document
+                uploadDocumentState =
+                    documentRepository.uploadDocument(tempFile, documentTypeId)
+
+                // Refresh status on success
+                if (uploadDocumentState is Resource.Success) {
+                    loadRegistrationStatus()
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                com.wahyuagast.keamanansisteminformasimobile.utils.AppLog.e(
+                    "MahasiswaProfileVM",
+                    "Upload failed"
+                )
                 uploadDocumentState = Resource.Error("Gagal memproses file: ${e.localizedMessage}")
+            } finally {
+                // Security: Always delete temp file in finally block to ensure cleanup
+                // This prevents sensitive data from persisting on disk
+                if (tempFile.exists()) {
+                    val deleted = tempFile.delete()
+                    if (!deleted) {
+                        com.wahyuagast.keamanansisteminformasimobile.utils.AppLog.w(
+                            "MahasiswaProfileVM",
+                            "Failed to delete temp file"
+                        )
+                    }
+                }
             }
         }
     }

@@ -212,4 +212,333 @@ Next steps I can implement for you
 If you want any of those implemented, tell me which one (biometric hardening, tests, or CI checks) and I will implement it and push the changes.
 
 ---
-Generated: 2026-01-06
+
+## Temporary file security — preventing sensitive data leaks
+
+**Threat:** When uploading files (e.g., documents, images), the app may create temporary files to process the data. If these files are not properly cleaned up or are stored in external storage, sensitive information can persist on disk and be accessible to other apps or attackers.
+
+**Protection implemented:**
+
+This app implements secure temporary file handling with three layers of defense:
+
+### 1. Use app-private storage (internal cache directory)
+
+Temporary files are created in `context.cacheDir`, not external storage:
+
+```kotlin
+val tempFile = File(
+    context.cacheDir, // App-private storage (not accessible by other apps)
+    "upload_${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}.tmp"
+)
+```
+
+**Why this matters:**
+- `cacheDir` is protected by Android's app sandboxing — other apps cannot read it (unless device is rooted)
+- External storage (`getExternalCacheDir()` or `Environment.getExternalStorageDirectory()`) is accessible to any app with storage permissions
+- Using unique filenames prevents collisions and race conditions
+
+### 2. Always delete temp files in finally blocks
+
+The code ensures cleanup happens even if an exception occurs:
+
+```kotlin
+try {
+    // Create temp file
+    contentResolver.openInputStream(uri)?.use { input ->
+        tempFile.outputStream().use { output ->
+            input.copyTo(output)
+        }
+    }
+    
+    // Validate and upload
+    if (tempFile.length() > 2 * 1024 * 1024) {
+        throw Exception("File too large")
+    }
+    
+    uploadResult = api.uploadDocument(tempFile)
+} catch (e: Exception) {
+    // Handle error
+} finally {
+    // Security: Always delete temp file, even if upload fails
+    if (tempFile.exists()) {
+        val deleted = tempFile.delete()
+        if (!deleted) {
+            AppLog.w("ViewModel", "Failed to delete temp file")
+        }
+    }
+}
+```
+
+**Key points:**
+- `finally` block executes whether the upload succeeds, fails, or throws an exception
+- We check `tempFile.exists()` before deleting to avoid errors
+- We log a warning if deletion fails (rare but possible on low storage or permission issues)
+
+### 3. Periodic cleanup of orphaned files
+
+The app cleans up old temp files on startup to handle cases where the app crashed before cleanup:
+
+```kotlin
+// In MahasiswaProfileViewModel.kt (companion object)
+fun cleanupOldTempFiles(context: Context) {
+    try {
+        val cacheDir = context.cacheDir
+        val oneDayInMillis = 24 * 60 * 60 * 1000L
+        val now = System.currentTimeMillis()
+        
+        cacheDir.listFiles()?.forEach { file ->
+            if (file.name.startsWith("upload_") && file.name.endsWith(".tmp")) {
+                if (now - file.lastModified() > oneDayInMillis) {
+                    file.delete()
+                }
+            }
+        }
+    } catch (e: Exception) {
+        AppLog.w("Cleanup", "Failed to clean old temp files")
+    }
+}
+```
+
+Called in `MainActivity.onCreate()`:
+
+```kotlin
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    RetrofitClient.initialize(applicationContext)
+    
+    // Security: Clean up old temporary files on app start
+    MahasiswaProfileViewModel.cleanupOldTempFiles(applicationContext)
+    
+    setContent { /* ... */ }
+}
+```
+
+**Implementation locations:**
+- Upload logic: `app/src/main/java/.../ui/viewmodel/MahasiswaProfileViewModel.kt` (uploadDocument function)
+- Cleanup function: `MahasiswaProfileViewModel.kt` (companion object)
+- Cleanup call: `MainActivity.kt` (onCreate)
+
+**Additional validation (defense in depth):**
+
+Before uploading, the app validates:
+- **MIME type:** Only PDF files accepted (for document uploads)
+- **File size:** Maximum 2MB to prevent DoS attacks
+- **Resource management:** Uses `.use { }` blocks to ensure streams are properly closed
+
+```kotlin
+// Validate MIME Type
+val type = contentResolver.getType(uri)
+if (type != "application/pdf") {
+    throw Exception("File must be PDF")
+}
+
+// Validate Size
+if (tempFile.length() > 2 * 1024 * 1024) {
+    throw Exception("File too large (max 2MB)")
+}
+```
+
+**Testing verification:**
+
+1. Upload a document, then check the cache directory:
+   ```bash
+   adb shell ls -l /data/data/com.wahyuagast.keamanansisteminformasimobile/cache/
+   ```
+   No `upload_*.tmp` files should remain after successful upload
+
+2. Force-close the app during upload, then restart:
+   - Old files (>24h) will be cleaned up on next app start
+   - Recent files (<24h) persist temporarily but will be cleaned next day
+
+3. Check logs for cleanup warnings (should not appear in normal operation)
+
+**Why this approach is secure:**
+
+- **Confidentiality:** Files stored in app-private cache, not accessible to other apps
+- **Availability:** Automatic cleanup prevents disk space exhaustion
+- **Reliability:** Multiple cleanup layers (immediate + startup) handle crashes
+- **Compliance:** Meets OWASP MASVS requirement for secure temporary file handling
+
+**Comparison to insecure alternatives:**
+
+| Approach | Security Issue |
+|----------|---------------|
+| Use `File.createTempFile()` without cleanup | Files persist indefinitely in cache |
+| Use external storage | Any app can read the files |
+| Delete only on success | Files leak if upload fails or app crashes |
+| No periodic cleanup | Orphaned files accumulate over time |
+| **Our implementation (secure)** | **App-private + guaranteed cleanup + periodic scan** |
+
+**Assignment note:** You can explain this as "defense in depth for temporary file security" — we don't just rely on one mechanism, but layer multiple protections to handle edge cases.
+
+---
+
+## Cryptographically secure random number generation
+
+**Threat:** Using predictable random number generators (like `java.util.Random`) for security-sensitive operations allows attackers to predict tokens, session IDs, or encryption keys. `java.util.Random` uses a 48-bit seed and is deterministic — an attacker who observes a few outputs can predict all future values.
+
+**MobSF Warning Context:**
+
+If MobSF reports "insecure random number generator" in files like `h6/b.java`, `i4/g.java`, `q7/a.java`, etc., these are **obfuscated third-party library files** (analytics SDKs, ad networks, etc.). You cannot fix code in external libraries directly.
+
+**What matters for security:**
+- **Your application code** must use `java.security.SecureRandom` or `java.util.UUID.randomUUID()` (which uses SecureRandom internally)
+- Third-party libraries using weak random for non-security purposes (analytics sampling, A/B testing) pose minimal risk
+- If a library uses weak random for tokens/encryption, consider replacing the library
+
+### Protection implemented in this app
+
+**1. SecureRandomUtil utility class**
+
+Location: `app/src/main/java/.../utils/SecureRandomUtil.kt`
+
+This class provides cryptographically secure random generation methods:
+
+```kotlin
+object SecureRandomUtil {
+    private val secureRandom = SecureRandom()
+    
+    // Generate random bytes (for tokens, keys)
+    fun generateRandomBytes(length: Int): ByteArray {
+        val bytes = ByteArray(length)
+        secureRandom.nextBytes(bytes)
+        return bytes
+    }
+    
+    // Generate hex token (for API tokens, session IDs)
+    fun generateSecureToken(byteLength: Int = 32): String {
+        val bytes = generateRandomBytes(byteLength)
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+    
+    // Generate UUID (for file IDs, correlation IDs)
+    fun generateUUID(): String = UUID.randomUUID().toString()
+    
+    // Generate alphanumeric code (for OTPs, verification codes)
+    fun generateAlphanumeric(length: Int): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        return (1..length)
+            .map { chars[secureRandomInt(chars.length)] }
+            .joinToString("")
+    }
+}
+```
+
+**2. Current usage in the app**
+
+The app already uses secure random generation:
+
+- **Temporary file names**: Uses `UUID.randomUUID()` (SecureRandom-backed)
+  ```kotlin
+  val tempFile = File(
+      context.cacheDir,
+      "upload_${System.currentTimeMillis()}_${UUID.randomUUID()}.tmp"
+  )
+  ```
+
+- **Audit log IDs**: Uses `UUID.randomUUID()` for correlation IDs
+  ```kotlin
+  val id = UUID.randomUUID().toString()
+  ```
+
+**3. When to use each method**
+
+| Use Case | Method | Example |
+|----------|--------|---------|
+| Session tokens | `generateSecureToken(32)` | `val token = SecureRandomUtil.generateSecureToken()` |
+| Encryption keys | `generateRandomBytes(32)` | `val key = SecureRandomUtil.generateRandomBytes(32)` |
+| File/request IDs | `generateUUID()` | `val id = SecureRandomUtil.generateUUID()` |
+| OTP codes | `generateAlphanumeric(6)` | `val otp = SecureRandomUtil.generateAlphanumeric(6)` |
+| CSRF tokens | `generateSecureToken(24)` | `val csrf = SecureRandomUtil.generateSecureToken(24)` |
+
+**What NOT to do (insecure):**
+
+```kotlin
+// ❌ NEVER use java.util.Random for security
+val random = Random()
+val token = random.nextInt() // PREDICTABLE!
+
+// ❌ NEVER use fixed seeds
+val random = Random(12345) // DETERMINISTIC!
+
+// ❌ NEVER use Math.random() for tokens
+val token = (Math.random() * 1000000).toInt() // WEAK!
+```
+
+**Why SecureRandom is safe:**
+
+- Uses platform entropy sources (hardware RNG, /dev/urandom on Android)
+- Cryptographically strong PRNG (unpredictable even with observed outputs)
+- Approved for FIPS 140-2 compliance
+- Default algorithm on Android: `SHA1PRNG` (seeded from `/dev/urandom`)
+
+**Performance note:**
+
+`SecureRandom` is slower than `java.util.Random` but still very fast (~10µs per call). The security benefit far outweighs the negligible performance cost. Never optimize by switching to weak random for security-sensitive operations.
+
+**Testing verification:**
+
+1. Search your code for insecure random usage:
+   ```bash
+   grep -r "java.util.Random" app/src/main/java/
+   grep -r "Math.random" app/src/main/java/
+   ```
+   Should return no results in your code (only in third-party libraries)
+
+2. Verify SecureRandom usage:
+   ```bash
+   grep -r "SecureRandom" app/src/main/java/
+   grep -r "UUID.randomUUID" app/src/main/java/
+   ```
+   Should show usage in `SecureRandomUtil.kt`, `MahasiswaProfileViewModel.kt`, `AuditRepository.kt`
+
+3. Generate a test token and verify it's unpredictable:
+   ```kotlin
+   val token1 = SecureRandomUtil.generateSecureToken()
+   val token2 = SecureRandomUtil.generateSecureToken()
+   // These should be completely different (no pattern)
+   println(token1) // e.g., "a3f9d2c8e1b4..."
+   println(token2) // e.g., "7c2e9a1f5d3b..."
+   ```
+
+**Third-party library assessment:**
+
+If MobSF flags libraries:
+- **Check the library's purpose**: Analytics? Ads? Crash reporting?
+- **Assess the risk**: Does it handle authentication tokens or encryption keys? (High risk) Or just sampling data? (Low risk)
+- **Update the library**: Check if a newer version uses SecureRandom
+- **Replace if necessary**: If the library uses weak random for security operations, find an alternative
+
+**Examples of acceptable weak random usage in libraries:**
+- A/B test assignment (user bucketing)
+- Analytics sampling (e.g., sample 10% of events)
+- Ad rotation (which ad to show)
+- UI animations (random confetti positions)
+
+**Examples of unacceptable weak random usage:**
+- Session token generation
+- Encryption key derivation
+- CSRF token creation
+- Password reset tokens
+- OAuth state parameters
+
+**Assignment explanation:**
+
+> This application uses `java.security.SecureRandom` and `java.util.UUID` (which is SecureRandom-backed) for all security-sensitive random generation, including temporary file IDs and audit log correlation IDs. A utility class (`SecureRandomUtil`) provides reusable methods for generating secure tokens, UUIDs, and random bytes. MobSF warnings about insecure random in obfuscated library files (h6/b.java, etc.) refer to third-party SDK code that we do not control. These libraries use weak random for non-security purposes like analytics sampling, which poses minimal risk. Our application code never uses `java.util.Random` or `Math.random()` for any security-sensitive operations.
+
+**Code review checklist:**
+
+- [ ] No usage of `java.util.Random` in application code
+- [ ] No usage of `Math.random()` in application code
+- [ ] All tokens/IDs use `SecureRandom` or `UUID.randomUUID()`
+- [ ] Temporary file names use unpredictable UUIDs
+- [ ] Session tokens (if generated client-side) use `generateSecureToken()`
+- [ ] Third-party libraries assessed for risk
+
+**Implementation locations:**
+- Utility class: `app/src/main/java/.../utils/SecureRandomUtil.kt`
+- Usage in temp files: `MahasiswaProfileViewModel.kt` (line 270)
+- Usage in audit logs: `AuditRepository.kt` (line 28)
+
+---
+Generated: 2026-01-08

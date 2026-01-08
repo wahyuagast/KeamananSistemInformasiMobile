@@ -40,8 +40,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _sessionState.value = SessionState.Authenticated(roleId)
                 } else {
                     // Token invalid or network error. 
-                    // If 401, we should clear token. 
-                    // To be safe, if we can't get profile, we force login.
+                    // If 401, clear token.
                     repository.clearToken()
                     _sessionState.value = SessionState.Unauthenticated
                 }

@@ -10,7 +10,6 @@ import androidx.security.crypto.MasterKey
 import com.wahyuagast.keamanansisteminformasimobile.utils.AppLog
 
 // usage of datastore is risky: rooted device can compromise
-// This class is now secure for storing sensitive data.
 
 class TokenManager(context: Context) {
 

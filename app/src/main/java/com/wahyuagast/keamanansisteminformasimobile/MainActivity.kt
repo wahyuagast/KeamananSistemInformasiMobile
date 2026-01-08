@@ -38,6 +38,11 @@ class MainActivity : ComponentActivity() {
             applicationContext
         )
 
+        // Security: Clean up old temporary files on app start
+        com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.MahasiswaProfileViewModel.cleanupOldTempFiles(
+            applicationContext
+        )
+
         setContent {
             val navController = rememberNavController()
 
@@ -46,14 +51,11 @@ class MainActivity : ComponentActivity() {
                     androidx.lifecycle.viewmodel.compose.viewModel()
                 val sessionState by mainViewModel.sessionState.collectAsState()
 
-                // Decide start destination based on session state, but initially show splash
-                // Actually, NavHost needs a fixed startDestination string. 
-                // We use "splash" as start.
 
                 NavHost(navController = navController, startDestination = "splash") {
 
                     composable("splash") {
-                        // Observe state and navigate
+
                         LaunchedEffect(sessionState) {
                             when (val state = sessionState) {
                                 is com.wahyuagast.keamanansisteminformasimobile.ui.viewmodel.SessionState.Authenticated -> {

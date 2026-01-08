@@ -8,13 +8,17 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
 }
 
+kapt{
+    correctErrorTypes = true
+}
+
 android {
     namespace = "com.wahyuagast.keamanansisteminformasimobile"
     compileSdk = 36
 
     defaultConfig {
         applicationId = "com.wahyuagast.keamanansisteminformasimobile"
-        minSdk = 24
+        minSdk = 29
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -32,7 +36,7 @@ android {
         buildConfigField(
             "String",
             "API_BASE_URL",
-            "\"${localProperties.getProperty("API_BASE_URL", "https://your-api-url.com")}\""
+            "\"${localProperties.getProperty("API_BASE_URL", "")}\""
         )
         buildConfigField(
             "String",
@@ -43,7 +47,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -69,6 +73,7 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    // This is the correct, single entry for lifecycle-runtime-compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -77,7 +82,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.ads.mobile.sdk)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.play.services.identity.credentials)
@@ -102,16 +106,13 @@ dependencies {
     // Optional - Coil for avatar images
     implementation("io.coil-kt:coil-compose:2.4.0")
 
-    implementation("androidx.compose.material3:material3:1.3.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.1")
-
     // EncryptedSharedPreferences
     implementation("androidx.security:security-crypto:1.1.0")
 
     // Room (local persistence for audit logs)
-    implementation("androidx.room:room-runtime:2.5.2")
-    implementation("androidx.room:room-ktx:2.5.2")
-    kapt("androidx.room:room-compiler:2.5.2")
+    implementation("androidx.room:room-runtime:2.8.4")
+    implementation("androidx.room:room-ktx:2.8.4")
+    kapt("androidx.room:room-compiler:2.8.4")
 
     // WorkManager (background upload of audit logs)
     implementation("androidx.work:work-runtime-ktx:2.8.1")

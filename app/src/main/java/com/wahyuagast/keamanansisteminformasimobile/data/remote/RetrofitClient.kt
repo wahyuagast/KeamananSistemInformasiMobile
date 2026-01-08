@@ -26,14 +26,11 @@ object RetrofitClient {
     // WARNING: enabling this in production will print sensitive info (tokens, full URLs).
     private const val REVEAL_SENSITIVE_LOGS = false // do not set true
 
-    // Note: removed OkHttp's HttpLoggingInterceptor to avoid printing full request URLs or bodies.
-
     private lateinit var tokenManager: com.wahyuagast.keamanansisteminformasimobile.data.local.TokenManager
     private var deviceId: String? = null
 
     @SuppressLint("HardwareIds")
     fun initialize(context: Context) {
-        // store application context to avoid leaks
         val appCtx = context.applicationContext
         tokenManager = com.wahyuagast.keamanansisteminformasimobile.data.local.TokenManager(appCtx)
         deviceId = Settings.Secure.getString(appCtx.contentResolver, Settings.Secure.ANDROID_ID)
@@ -46,7 +43,9 @@ object RetrofitClient {
             java.util.logging.Logger.getLogger("okhttp3.OkHttpClient").level =
                 java.util.logging.Level.WARNING
         } catch (e: Exception) {
-            AppLog.w("RetrofitClient", "Could not set okhttp logger level: ${e.message}")
+            if (BuildConfig.DEBUG) {
+                AppLog.w("RetrofitClient", "Could not set okhttp logger level: ${e.message}")
+            }
         }
 
         // Schedule a periodic work to upload audit logs when network is available
@@ -68,10 +67,12 @@ object RetrofitClient {
                 request
             )
         } catch (e: Exception) {
-            com.wahyuagast.keamanansisteminformasimobile.utils.AppLog.e(
-                "RetrofitClient",
-                "Failed to schedule audit worker: ${e.message}"
-            )
+            if (BuildConfig.DEBUG) {
+                AppLog.e(
+                    "RetrofitClient",
+                    "Failed to schedule audit worker: ${e.message}"
+                )
+            }
         }
     }
 
@@ -107,9 +108,10 @@ object RetrofitClient {
                 val maskedAuth =
                     authHeader?.replace(Regex("Bearer\\s+(.+)"), "Bearer [REDACTED]") ?: "(none)"
 
-                // Log minimal information: HTTP method and presence of auth token.
-                // Avoid printing req.url or req.url.encodedPath which may reveal endpoints.
-                AppLog.d("RetrofitClient", "HTTP ${req.method} — Authorization=$maskedAuth")
+                // Only log when in debug builds
+                if (BuildConfig.DEBUG) {
+                    AppLog.d("RetrofitClient", "HTTP ${req.method} — Authorization=$maskedAuth")
+                }
 
                 // -----------------------------
                 // Demo block: reveal sensitive info
@@ -131,13 +133,17 @@ object RetrofitClient {
                             bodyString = buffer.readUtf8()
                         }
 
-                        // Use AppLog.w so it's obvious when demo mode is on. Keep this gated behind the debug checks above.
                         AppLog.w(
                             "RetrofitClient",
                             "DEMO (sensitive) - ${req.method} $fullUrl\nHeaders: $headers\nBody: $bodyString"
                         )
                     } catch (e: Exception) {
-                        AppLog.e("RetrofitClient", "Failed reading request for demo: ${e.message}")
+                        if (BuildConfig.DEBUG) {
+                            AppLog.e(
+                                "RetrofitClient",
+                                "Failed reading request for demo: ${e.message}"
+                            )
+                        }
                     }
                 }
 
